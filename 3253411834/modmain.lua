@@ -303,6 +303,17 @@ local item_config = {
         posh = 40,
         custom_order = slot_order[CustomOrderType.hand] ~= nil and slot_order[CustomOrderType.hand] or nil,
     },
+    shadow_battleaxe = {
+        itemtestfn = void_materials_predict,
+        pos = equip_pos.hand,
+        type = repair_type.fit,
+        repair_type = repair_type.forge,
+        accurately = false,
+        animbank = "ui_antlionhat_1x1",
+        animbuild = "ui_antlionhat_1x1",
+        posh = 40,
+        custom_order = slot_order[CustomOrderType.hand] ~= nil and slot_order[CustomOrderType.hand] or nil,
+    },
     lantern = {
         itemtestfn = cave_materials_predict,
         pos = equip_pos.hand,

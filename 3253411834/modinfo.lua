@@ -1,11 +1,11 @@
 local function Adaptive(en,zh,zht)local specify={zh=zh,zht=zht}return specify[locale]or en end
 
 local NAME_MOD = Adaptive (
-[[EquipAutoRepiar(2024.7Update)]]
+[[EquipAutoRepiar(2026.5.1Update)]]
 ,
-[[装备自动修理(2024.7更新)]]
+[[装备自动修理(2026.5.1更新)]]
 ,
-[[裝備自動修理(2024.7更新)]]
+[[裝備自動修理(2026.5.1更新)]]
 )
 
 local DESC_MOD = Adaptive(
@@ -13,14 +13,14 @@ local DESC_MOD = Adaptive(
 	Equipped with automatic repair, suitable for five-compartment backpack mod,Suitable for six equipment slots
 	Currently only items are supported:
 	Amulet (Yellow Amulet,Orange Amulet)
-	Clothing (Bearskin vest, cool summer dress, floppy vest, Breathable vest, houndtooth vest, raincoat,Belt of Hunger)
+	Clothing (Bearskin vest, cool summer dress, floppy vest, Breathable vest, houndtooth vest, raincoat, Belt of Hunger, Chirpy 3-set (Scarf/Cloak/Capelet))
 	Hats (horn hat, eyeball umbrella, winter hat, rain hat, cat hat, rabbit ear muffs, Polly Roger's hat, Tam o' Shanter, straw hat, funky goggles, Desert goggles, Squirrel Pioneer hat)
-	Nightshade complete (Nightshade Sword, Nightshade helmet, Nightshade armor, Nightshade Wand, Nightshade Smasher, Nightshade Hoe,Brambleshade Armor)
-	Shadow Set (Void Robe, Void Hood, Shadow Umbrella, Shadow Reaper)
-	Lighting (Lantern, miner's hat)
+	Nightshade complete (Nightshade Sword, Nightshade helmet, Nightshade armor, Nightshade Wand, Nightshade Smasher, Nightshade Hoe, Brambleshade Armor)
+	Shadow Set (Void Robe, Void Hood, Shadow Umbrella, Shadow Reaper, Shadow Maul)
+	Lighting (Lantern, miner's hat, Moggles)
 	Other Weapon(Alarming Clock)
 	Other Armor(Bone Armor,EyeMask)
-	Version :2.6
+	Version:2.8
 ]],
 [[
 	禁止搬运！！！
@@ -28,15 +28,15 @@ local DESC_MOD = Adaptive(
 	已经增加燃料格子是否自动打开开关
 	当前仅支持道具:
 		护符(魔光护符,懒人护符)
-		服装(熊皮背心,清凉夏装,松软背心,透气背心,犬牙背心,雨衣,饥饿腰带)
-		帽子(牛角帽，眼球伞,冬帽,雨帽,猫帽,兔耳罩,波利罗杰的帽子,贝雷帽,草帽,时髦护目镜,沙漠护目镜,松鼠先锋队帽子)
-		亮茄全套(亮茄剑，亮茄头盔，亮茄盔甲，亮茄魔杖，亮茄粉碎者，亮茄锄铲,荆棘茄甲)
-		暗影全套(虚空长袍，虚空兜帽，暗影伞，暗影收割者)
-		照明类(提灯,矿工帽)
+		服装(熊皮背心,清凉夏装,松软背心,透气背心,犬牙背心,雨衣,饥饿腰带,叽叽喳喳三件套(围巾/披风/短披肩))
+		帽子(牛角帽,眼球伞,冬帽,雨帽,猫帽,兔耳罩,波利罗杰的帽子,贝雷帽,草帽,时髦护目镜,沙漠护目镜,松鼠先锋队帽子)
+		亮茄全套(亮茄剑,亮茄头盔,亮茄盔甲,亮茄魔杖,亮茄粉碎者,亮茄锄铲,荆棘茄甲)
+		暗影全套(虚空长袍,虚空兜帽,暗影伞,暗影收割者,暗影槌)
+		照明类(提灯,矿工帽,鼹鼠帽)
 		其他武器(警钟)
 		其他防具(骨头盔甲,眼面具)
-	待补充:餐桌灯，鼹鼠帽,棱镜/勋章的装备
-	版本:2.6
+	待补充:餐桌灯,棱镜/勋章的装备
+	版本:2.8
 ]]
 ,
 [[
@@ -44,21 +44,21 @@ local DESC_MOD = Adaptive(
 	裝備自動修理,適用於五格揹包mod,適配六格揹包
 	當前僅支持道具:
 	護符(魔光護符,懶人護符)
-	服裝(熊皮背心,清涼夏裝,鬆軟背心,透氣背心,犬牙背心,雨衣,饥饿腰带)
-	帽子(牛角帽，眼球傘,冬帽,雨帽,貓帽,兔耳罩,波利羅傑的帽子,貝雷帽,草帽,時髦護目鏡,沙漠護目鏡,松鼠先鋒隊帽子)
-	亮茄全套(亮茄劍，亮茄頭盔，亮茄盔甲，亮茄魔杖，亮茄粉碎者，亮茄鋤鏟,荆棘茄甲)
-	暗影全套(虛空長袍，虛空兜帽，暗影傘，暗影收割者)
-	照明類(提燈,礦工帽)
+	服裝(熊皮背心,清涼夏裝,鬆軟背心,透氣背心,犬牙背心,雨衣,饥饿腰带,嘰嘰喳喳三件套(圍巾/披風/短披肩))
+	帽子(牛角帽,眼球傘,冬帽,雨帽,貓帽,兔耳罩,波利羅傑的帽子,貝雷帽,草帽,時髦護目鏡,沙漠護目鏡,松鼠先鋒隊帽子)
+	亮茄全套(亮茄劍,亮茄頭盔,亮茄盔甲,亮茄魔杖,亮茄粉碎者,亮茄鋤鏟,荆棘茄甲)
+	暗影全套(虛空長袍,虛空兜帽,暗影傘,暗影收割者,暗影槌)
+	照明類(提燈,礦工帽,鼴鼠帽)
 	其他武器(警鐘)
 	其他防具(骨頭盔甲,眼面具)
-	版本:2.6
+	版本:2.8
 
 ]])
 
 name = NAME_MOD
 description = DESC_MOD
 author = "Larkin" 
-version = "2.6"
+version = "2.8"
 
 forumthread = "" 
 
@@ -68,7 +68,7 @@ dst_compatible = true
 dont_starve_compatible = false
 reign_of_giants_compatible = false
 
-all_clients_require_mod = true 
+all_clients_require_mod = true
 
 icon_atlas = "modicon.xml"
 icon = "modicon.tex"
@@ -109,6 +109,7 @@ local TXT_STATIC = {
 	["voidclothhat"] = Adaptive("Void Cowl","虚空兜帽","虛空兜帽"),
 	["voidcloth_umbrella"] = Adaptive("Void Umbralla","暗影伞","暗影傘"),
 	["voidcloth_scythe"] = Adaptive("Shadow Reaper","暗影收割者","暗影收割者"),
+	["shadow_battleaxe"] = Adaptive("Shadow Maul","暗影槌","暗影槌"),
 
 	["lantern"] = Adaptive("Lantern","提灯","提燈"),
 	["minerhat"] = Adaptive("Miner Hat","矿工帽","礦工帽"),
@@ -390,6 +391,13 @@ configuration_options = {
 		name = "voidcloth_scythe",
 		label = TXT_STATIC["voidcloth_scythe"],
 		hover = TXT_STATIC["voidcloth_scythe"] .. TXT_STATIC["enableOrNot"],
+		options = Options,
+		default = true,
+	},
+	{
+		name = "shadow_battleaxe",
+		label = TXT_STATIC["shadow_battleaxe"],
+		hover = TXT_STATIC["shadow_battleaxe"] .. TXT_STATIC["enableOrNot"],
 		options = Options,
 		default = true,
 	},
