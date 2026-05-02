@@ -1,0 +1,19 @@
+<Atlas>
+	<Texture filename="medaldugs.tex"/>
+	<Elements>
+		<Element name="medaldug_flower_cave_withered.tex" u1="0.750000" u2="0.992424" v1="0.507576" v2="0.750000"/>
+		<Element name="medaldug_lightflier_flower.tex" u1="0.750000" u2="0.992424" v1="0.757576" v2="1.000000"/>
+		<Element name="medaldug_wormlight_plant.tex" u1="0.250000" u2="0.492424" v1="0.007576" v2="0.250000"/>
+		<Element name="medaldug_flower_cave_double_withered.tex" u1="0.000000" u2="0.242424" v1="0.007576" v2="0.250000"/>
+		<Element name="medaldug_flower_cave_triple.tex" u1="0.000000" u2="0.242424" v1="0.257576" v2="0.500000"/>
+		<Element name="medaldug_lichen.tex" u1="0.250000" u2="0.492424" v1="0.757576" v2="1.000000"/>
+		<Element name="medaldug_flower_cave_double.tex" u1="0.750000" u2="0.992424" v1="0.257576" v2="0.500000"/>
+		<Element name="medaldug_flower_cave_triple_withered.tex" u1="0.500000" u2="0.742424" v1="0.257576" v2="0.500000"/>
+		<Element name="medaldug_flower_cave.tex" u1="0.250000" u2="0.492424" v1="0.257576" v2="0.500000"/>
+		<Element name="medaldug_oasis_cactus.tex" u1="0.000000" u2="0.242424" v1="0.507576" v2="0.750000"/>
+		<Element name="medaldug_livingtree_root.tex" u1="0.250000" u2="0.492424" v1="0.507576" v2="0.750000"/>
+		<Element name="medaldug_reeds.tex" u1="0.500000" u2="0.742424" v1="0.507576" v2="0.750000"/>
+		<Element name="medaldug_cactus.tex" u1="0.000000" u2="0.242424" v1="0.757576" v2="1.000000"/>
+		<Element name="medaldug_fruit_tree_stump.tex" u1="0.500000" u2="0.742424" v1="0.757576" v2="1.000000"/>
+	</Elements>
+</Atlas>
