@@ -1,11 +1,11 @@
 local function Adaptive(en,zh,zht)local specify={zh=zh,zht=zht}return specify[locale]or en end
 
 local NAME_MOD = Adaptive (
-[[EquipAutoRepiar(2026.5.1Update)]]
+[[EquipAutoRepiar(2026.5.5Update)]]
 ,
-[[装备自动修理(2026.5.1更新)]]
+[[装备自动修理(2026.5.5更新)]]
 ,
-[[裝備自動修理(2026.5.1更新)]]
+[[裝備自動修理(2026.5.5更新)]]
 )
 
 local DESC_MOD = Adaptive(
@@ -20,7 +20,7 @@ local DESC_MOD = Adaptive(
 	Lighting (Lantern, miner's hat, Moggles)
 	Other Weapon(Alarming Clock)
 	Other Armor(Bone Armor,EyeMask)
-	Version:2.8
+	Version:2.9
 ]],
 [[
 	禁止搬运！！！
@@ -36,7 +36,7 @@ local DESC_MOD = Adaptive(
 		其他武器(警钟)
 		其他防具(骨头盔甲,眼面具)
 	待补充:餐桌灯,棱镜/勋章的装备
-	版本:2.8
+	版本:2.9
 ]]
 ,
 [[
@@ -51,14 +51,14 @@ local DESC_MOD = Adaptive(
 	照明類(提燈,礦工帽,鼴鼠帽)
 	其他武器(警鐘)
 	其他防具(骨頭盔甲,眼面具)
-	版本:2.8
+	版本:2.9
 
 ]])
 
 name = NAME_MOD
 description = DESC_MOD
 author = "Larkin" 
-version = "2.8"
+version = "2.9"
 
 forumthread = "" 
 

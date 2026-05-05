@@ -501,7 +501,7 @@ for perfab, item in pairs(item_config) do
 
 end
 
-local needRebuildConfig = {"eyemaskhat", "shieldofterror"}
+local needRebuildConfig = {"eyemaskhat", "shieldofterror", "molehat"}
 
 for _,prefab in pairs(needRebuildConfig) do
     containers.params[prefab .. "_container"].widget.slotpos = 
