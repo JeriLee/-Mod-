@@ -324,6 +324,24 @@ local item_config = {
         posh = 40,
         custom_order = slot_order[CustomOrderType.hand] ~= nil and slot_order[CustomOrderType.hand] or nil,
     },
+    thurible = {
+        itemtestfn = nightmare_materials_predict,
+        pos = equip_pos.hand,
+        type = repair_type.fuel,
+        accurately = true,
+        custom_order = slot_order[CustomOrderType.hand] ~= nil and slot_order[CustomOrderType.hand] or nil,
+    },
+    voidcloth_boomerang = {
+        itemtestfn = void_materials_predict,
+        pos = equip_pos.hand,
+        type = repair_type.fit,
+        repair_type = repair_type.forge,
+        accurately = false,
+        animbank = "ui_antlionhat_1x1",
+        animbuild = "ui_antlionhat_1x1",
+        posh = 40,
+        custom_order = slot_order[CustomOrderType.hand] ~= nil and slot_order[CustomOrderType.hand] or nil,
+    },
     lantern = {
         itemtestfn = cave_materials_predict,
         pos = equip_pos.hand,
@@ -356,6 +374,14 @@ local item_config = {
         type = repair_type.fuel,
         accurately = true,
         need_perish = true,
+        custom_order = slot_order[CustomOrderType.hat] ~= nil and slot_order[CustomOrderType.hat] or nil,
+    },
+    salty_doghat = {
+        itemtestfn = usage_materials_predict,
+        pos = equip_pos.head,
+        type = repair_type.fuel,
+        repair_type = repair_type.sewing,
+        accurately = true,
         custom_order = slot_order[CustomOrderType.hat] ~= nil and slot_order[CustomOrderType.hat] or nil,
     },
     -- tophat = {
@@ -581,7 +607,8 @@ local function checkAndRepair(inst, prefabConfig, callBack, isFuelNeedFunc)
             -- do nothing
         elseif fuelFinded.components.stackable == nil then
             if prefabConfig.repair_type == repair_type.sewing then
-                fuelFinded.components.sewing:DoSewing(inst, doer)
+                local sewing = fuelFinded.components.sewing
+                fuelAdded = sewing ~= nil and sewing:DoSewing(inst, doer) == true
             else
                 LogError("stackable is nil ", fuelFinded ~= nil and fuelFinded.name or "fuelIsNil", inst.name)
             end
@@ -589,18 +616,31 @@ local function checkAndRepair(inst, prefabConfig, callBack, isFuelNeedFunc)
             local usedFuel = fuelFinded.components.stackable:Get(1)
 
             local actionType = prefabConfig.repair_type ~= nil and prefabConfig.repair_type or prefabConfig.type
+            local ok = false
             if actionType == repair_type.forge then
-                inst.components.forgerepairable:Repair(doer, usedFuel)
+                ok = inst.components.forgerepairable:Repair(doer, usedFuel)
             elseif actionType == repair_type.fuel then
-                inst.components.fueled:TakeFuelItem(usedFuel, doer)
+                ok = inst.components.fueled:TakeFuelItem(usedFuel, doer)
             elseif actionType == repair_type.sewing then
-                usedFuel.components.sewing:DoSewing(inst, doer)
+                ok = usedFuel.components.sewing ~= nil and usedFuel.components.sewing:DoSewing(inst, doer) == true
             elseif actionType == repair_type.repairable then
-                inst.components.repairable:Repair(doer, usedFuel)
+                ok = inst.components.repairable:Repair(doer, usedFuel)
             elseif actionType == repair_type.eat then
-                inst.components.eater:Eat(usedFuel,doer)
+                ok = inst.components.eater:Eat(usedFuel, doer)
             end
-            fuelAdded = true
+
+            if ok then
+                fuelAdded = true
+            else
+                -- 修复失败：把已取出的材料还回去，避免凭空吞材料
+                -- 丢了就丢了，不要多此一举，这种操作很容易产生意外bug
+                -- local owner = doer ~= nil and doer.components.inventory or nil
+                -- if owner ~= nil and usedFuel ~= nil and usedFuel:IsValid() then
+                --     owner:GiveItem(usedFuel)
+                -- elseif usedFuel ~= nil and usedFuel:IsValid() then
+                --     usedFuel:Remove()
+                -- end
+            end
         end
     end
     callBack(fuelAdded)

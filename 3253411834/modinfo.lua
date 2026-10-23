@@ -21,10 +21,10 @@ local DESC_MOD = Adaptive(
 	Currently only items are supported:
 	Amulet (Yellow Amulet,Orange Amulet)
 	Clothing (Bearskin vest, cool summer dress, floppy vest, Breathable vest, houndtooth vest, raincoat, Belt of Hunger, Chirpy 3-set (Scarf/Cloak/Capelet))
-	Hats (horn hat, eyeball umbrella, winter hat, rain hat, cat hat, rabbit ear muffs, Polly Roger's hat, Tam o' Shanter, straw hat, funky goggles, Desert goggles, Squirrel Pioneer hat)
+	Hats (horn hat, eyeball umbrella, winter hat, rain hat, cat hat, rabbit ear muffs, Polly Roger's hat, Tam o' Shanter, straw hat, funky goggles, Desert goggles, Squirrel Pioneer hat, Salty Dog's Hat)
 	Nightshade complete (Nightshade Sword, Nightshade helmet, Nightshade armor, Nightshade Wand, Nightshade Smasher, Nightshade Hoe, Brambleshade Armor)
-	Shadow Set (Void Robe, Void Hood, Shadow Umbrella, Shadow Reaper, Shadow Maul)
-	Lighting (Lantern, miner's hat, Moggles)
+	Shadow Set (Void Robe, Void Hood, Shadow Umbrella, Shadow Reaper, Shadow Maul, Gloomerang)
+	Lighting (Lantern, miner's hat, Moggles, Shadow Thurible)
 	Other Weapon(Alarming Clock)
 	Other Armor(Bone Armor,EyeMask)
 	Version:3.0
@@ -41,10 +41,10 @@ local DESC_MOD = Adaptive(
 	当前仅支持道具:
 		护符(魔光护符,懒人护符)
 		服装(熊皮背心,清凉夏装,松软背心,透气背心,犬牙背心,雨衣,饥饿腰带,叽叽喳喳三件套(围巾/披风/短披肩))
-		帽子(牛角帽,眼球伞,冬帽,雨帽,猫帽,兔耳罩,波利罗杰的帽子,贝雷帽,草帽,时髦护目镜,沙漠护目镜,松鼠先锋队帽子)
+		帽子(牛角帽,眼球伞,冬帽,雨帽,猫帽,兔耳罩,波利罗杰的帽子,贝雷帽,草帽,时髦护目镜,沙漠护目镜,松鼠先锋队帽子,咸狗帽)
 		亮茄全套(亮茄剑,亮茄头盔,亮茄盔甲,亮茄魔杖,亮茄粉碎者,亮茄锄铲,荆棘茄甲)
-		暗影全套(虚空长袍,虚空兜帽,暗影伞,暗影收割者,暗影槌)
-		照明类(提灯,矿工帽,鼹鼠帽)
+		暗影全套(虚空长袍,虚空兜帽,暗影伞,暗影收割者,暗影槌,阴郁回旋镖)
+		照明类(提灯,矿工帽,鼹鼠帽,暗影香炉)
 		其他武器(警钟)
 		其他防具(骨头盔甲,眼面具)
 	待补充:餐桌灯,棱镜/勋章的装备
@@ -64,10 +64,10 @@ local DESC_MOD = Adaptive(
 	當前僅支持道具:
 	護符(魔光護符,懶人護符)
 	服裝(熊皮背心,清涼夏裝,鬆軟背心,透氣背心,犬牙背心,雨衣,饥饿腰带,嘰嘰喳喳三件套(圍巾/披風/短披肩))
-	帽子(牛角帽,眼球傘,冬帽,雨帽,貓帽,兔耳罩,波利羅傑的帽子,貝雷帽,草帽,時髦護目鏡,沙漠護目鏡,松鼠先鋒隊帽子)
+	帽子(牛角帽,眼球傘,冬帽,雨帽,貓帽,兔耳罩,波利羅傑的帽子,貝雷帽,草帽,時髦護目鏡,沙漠護目鏡,松鼠先鋒隊帽子,鹹狗帽)
 	亮茄全套(亮茄劍,亮茄頭盔,亮茄盔甲,亮茄魔杖,亮茄粉碎者,亮茄鋤鏟,荆棘茄甲)
-	暗影全套(虛空長袍,虛空兜帽,暗影傘,暗影收割者,暗影槌)
-	照明類(提燈,礦工帽,鼴鼠帽)
+	暗影全套(虛空長袍,虛空兜帽,暗影傘,暗影收割者,暗影槌,阴郁回旋镖)
+	照明類(提燈,礦工帽,鼴鼠帽,暗影香爐)
 	其他武器(警鐘)
 	其他防具(骨頭盔甲,眼面具)
 	版本:3.0
@@ -129,6 +129,9 @@ local TXT_STATIC = {
 	["voidcloth_umbrella"] = Adaptive("Void Umbralla","暗影伞","暗影傘"),
 	["voidcloth_scythe"] = Adaptive("Shadow Reaper","暗影收割者","暗影收割者"),
 	["shadow_battleaxe"] = Adaptive("Shadow Maul","暗影槌","暗影槌"),
+	["voidcloth_boomerang"] = Adaptive("Gloomerang","阴郁回旋镖","阴郁回旋镖"),
+	["thurible"] = Adaptive("Shadow Thurible","暗影香炉","暗影香爐"),
+	["salty_doghat"] = Adaptive("Salty Dog's Hat","咸狗帽","鹹狗帽"),
 
 	["lantern"] = Adaptive("Lantern","提灯","提燈"),
 	["minerhat"] = Adaptive("Miner Hat","矿工帽","礦工帽"),
@@ -420,6 +423,20 @@ configuration_options = {
 		options = Options,
 		default = true,
 	},
+	{
+		name = "voidcloth_boomerang",
+		label = TXT_STATIC["voidcloth_boomerang"],
+		hover = TXT_STATIC["voidcloth_boomerang"] .. TXT_STATIC["enableOrNot"],
+		options = Options,
+		default = true,
+	},
+	{
+		name = "thurible",
+		label = TXT_STATIC["thurible"],
+		hover = TXT_STATIC["thurible"] .. TXT_STATIC["enableOrNot"],
+		options = Options,
+		default = true,
+	},
 
 	-- lighting
 	{
@@ -440,6 +457,13 @@ configuration_options = {
 		name = "molehat",
 		label = TXT_STATIC["molehat"],
 		hover = TXT_STATIC["molehat"] .. TXT_STATIC["enableOrNot"],
+		options = Options,
+		default = true,
+	},
+	{
+		name = "salty_doghat",
+		label = TXT_STATIC["salty_doghat"],
+		hover = TXT_STATIC["salty_doghat"] .. TXT_STATIC["enableOrNot"],
 		options = Options,
 		default = true,
 	},
