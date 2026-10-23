@@ -39,6 +39,16 @@ local isFreezerEnable = IsEnabled("Freezer")
 local isAutoOpen = IsEnabled("SlotAutoOpen")
 local isPlayerInventoryEnable = IsEnabled("UsePlayerInventory")
 
+-- ===============================
+-- 是否要给装备增加一个修理槽
+-- ===============================
+local function NeedContainerFor(prefab)
+    if not isPlayerInventoryEnable then
+        return true
+    end
+    return prefab == "lantern"
+end
+
 -- custom slot roder
 local CustomOrderType = {
     hand = "hand",
@@ -558,7 +568,7 @@ local function checkAndRepair(inst, prefabConfig, callBack, isFuelNeedFunc)
     else
         if isPlayerInventoryEnable and doer ~= nil then
             fuelFinded = findItemFromPlayerInventory(doer, inst.prefab)
-        else
+        elseif inst.components.container ~= nil then
             fuelFinded = inst.components.container:FindItem(function () return true end )
         end
     end
@@ -601,7 +611,7 @@ local function checkAndRepair2(inst, prefabConfig, isFuelNeedFunc)
     local fuelFinded = nil
     if isPlayerInventoryEnable and doer ~= nil then
         fuelFinded = findItemFromPlayerInventory(doer, inst.prefab)
-    else
+    elseif inst.components.container ~= nil then
         fuelFinded = inst.components.container:FindItem(function () return true end )
     end
     -- if prefabConfig.usemaster then
@@ -737,7 +747,8 @@ local function solveAfterRepair(inst, prefabConfig)
         LogDebug("loadFunction", tostring(inst.name), "oldRepaired")
         inst.components.forgerepairable.onrepaired = function (item)
             oldRepaired(item)
-            if inst.components.container == nil then
+            -- 当启用“使用玩家背包” 且该装备不是提灯，不需要重建容器
+            if NeedContainerFor(inst.prefab) and inst.components.container == nil then
                 LogError("container missing", inst.name)
                 inst:AddComponent("container")
                 inst.components.container:WidgetSetup(inst.prefab .. "_container")
@@ -764,54 +775,64 @@ end
 local function addAutorepair(inst)
     loadRuntimeConfig(inst)
 
+    local hasRepairContainer = NeedContainerFor(inst.prefab)
+
     if not TheWorld.ismastersim then
-        inst.OnEntityReplicated = function(inst) inst.replica.container:WidgetSetup(inst.prefab .."_container") end
+        -- 客户端对确实挂了container组件的装备才需要本机做 widget setup
+        if hasRepairContainer then
+            inst.OnEntityReplicated = function(inst)
+                inst.replica.container:WidgetSetup(inst.prefab .."_container")
+            end
+        end
+
         return inst
     end
 
-    if inst.components.container ~= nil then
-        inst.components.container = nil
+    if hasRepairContainer then
+        if inst.components.container ~= nil then
+            inst.components.container = nil
+        end
+        inst:AddComponent("container")
+        inst.components.container:WidgetSetup(inst.prefab .. "_container")
+        inst.components.container.canbeopened = false
+
+        inst:ListenForEvent("equipped", function(i, event)
+            i.components.container.canbeopened = true
+            if isAutoOpen and i.components.container ~= nil then
+                i.components.container:Open(event.owner)
+            end
+        end)
+
+        -- old code will get a container.canbeopend false
+        -- because lunar ammor will remove onequip method after broken, and reset after repair
+        -- if I override this function ,i will resolve broken
+
+        -- local oldOnEquip = inst.components.equippable.onequipfn
+        -- inst.components.equippable.onequipfn = nil
+        -- inst.components.equippable.onequipfn = function(inst, owner)
+        --     oldOnEquip(inst, owner)
+        --     inst.components.container.canbeopened = true
+        --     if inst.components.container ~= nil then
+        --         inst.components.container:Open(owner)
+        --     end
+        -- end
+
+        inst:ListenForEvent("unequipped", function(i, data)
+            i.components.container.canbeopened = false
+            if i.components.container ~= nil then
+                i.components.container:Close()
+            end
+        end)
+
+        -- local oldOnUnequip = inst.components.equippable.onunequipfn
+        -- inst.components.equippable.onunequipfn = function(inst, owner)
+        --     oldOnUnequip(inst, owner)
+        --     inst.components.container.canbeopened = false
+        --     if inst.components.container ~= nil then
+        --         inst.components.container:Close()
+        --     end
+        -- end
     end
-    inst:AddComponent("container")
-    inst.components.container:WidgetSetup(inst.prefab .. "_container")
-    inst.components.container.canbeopened = false
-
-    inst:ListenForEvent("equipped", function(i, event)
-        i.components.container.canbeopened = true
-        if isAutoOpen and i.components.container ~= nil then
-            i.components.container:Open(event.owner)
-        end
-    end)
-
--- old code will get a container.canbeopend false
--- because lunar ammor will remove onequip method after broken, and reset after repair
--- if I override this function ,i will resolve broken
-
-    -- local oldOnEquip = inst.components.equippable.onequipfn
-    -- inst.components.equippable.onequipfn = nil
-    -- inst.components.equippable.onequipfn = function(inst, owner)
-    --     oldOnEquip(inst, owner)
-    --     inst.components.container.canbeopened = true
-    --     if inst.components.container ~= nil then
-    --         inst.components.container:Open(owner)
-    --     end
-    -- end
-
-    inst:ListenForEvent("unequipped", function(i, data)
-        i.components.container.canbeopened = false
-        if i.components.container ~= nil then
-            i.components.container:Close()
-        end
-    end)
-
-    -- local oldOnUnequip = inst.components.equippable.onunequipfn
-    -- inst.components.equippable.onunequipfn = function(inst, owner)
-    --     oldOnUnequip(inst, owner)
-    --     inst.components.container.canbeopened = false
-    --     if inst.components.container ~= nil then
-    --         inst.components.container:Close()
-    --     end
-    -- end
 
     local prefabName = inst.prefab
     local prefabConfig = item_config[prefabName]

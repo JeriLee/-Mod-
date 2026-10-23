@@ -1,16 +1,23 @@
 local function Adaptive(en,zh,zht)local specify={zh=zh,zht=zht}return specify[locale]or en end
 
 local NAME_MOD = Adaptive (
-[[EquipAutoRepiar(2026.5.5Update)]]
+[[EquipAutoRepiar(2026.10.23Update)]]
 ,
-[[装备自动修理(2026.5.5更新)]]
+[[装备自动修理(2026.10.23更新)]]
 ,
-[[裝備自動修理(2026.5.5更新)]]
+[[裝備自動修理(2026.10.23更新)]]
 )
 
 local DESC_MOD = Adaptive(
 [[
 	Equipped with automatic repair, suitable for five-compartment backpack mod,Suitable for six equipment slots
+
+	If you don’t like the slots automatically opening when you equip something, you can enable the 'Turn Off Auto-Open Slots' feature. 
+	If you don't like extra slots, you can turn on 'Find Materials from Player Inventory,' so there won’t be extra slots. But to support lanterns being automatically repaired when placed on the ground, the lantern slot is still kept. 
+	Known game features:
+		Feature 1: Once equipment has a slot, it can’t be copied by the Mimic Worm. If you want it copied, please disable the slot feature.
+		Feature 2: Equipment with slots cannot be put into wrapping paper.
+
 	Currently only items are supported:
 	Amulet (Yellow Amulet,Orange Amulet)
 	Clothing (Bearskin vest, cool summer dress, floppy vest, Breathable vest, houndtooth vest, raincoat, Belt of Hunger, Chirpy 3-set (Scarf/Cloak/Capelet))
@@ -20,12 +27,17 @@ local DESC_MOD = Adaptive(
 	Lighting (Lantern, miner's hat, Moggles)
 	Other Weapon(Alarming Clock)
 	Other Armor(Bone Armor,EyeMask)
-	Version:2.9
+	Version:3.0
 ]],
 [[
 	禁止搬运！！！
 	装备自动修理,适用于五格背包mod,适配六格背包
-	已经增加燃料格子是否自动打开开关
+	如果不喜欢装备戴上的时候，自动打开格子，可以启用【关闭格子自动打开】功能
+	如果不喜欢多余的格子，可以开启【从玩家背包寻找材料】这样就不会有额外格子。但是为了支持提灯放在地上自动修理，还是保留了提灯的格子。
+	已知游戏特性：
+		特性1：当装备拥有格子以后，就不能被拟态蠕虫复制。如果需要拟态蠕虫复制，请关闭格子功能。
+		特性2：带有格子的装备不能放入打包纸。
+
 	当前仅支持道具:
 		护符(魔光护符,懒人护符)
 		服装(熊皮背心,清凉夏装,松软背心,透气背心,犬牙背心,雨衣,饥饿腰带,叽叽喳喳三件套(围巾/披风/短披肩))
@@ -36,12 +48,19 @@ local DESC_MOD = Adaptive(
 		其他武器(警钟)
 		其他防具(骨头盔甲,眼面具)
 	待补充:餐桌灯,棱镜/勋章的装备
-	版本:2.9
+	版本:3.0
 ]]
 ,
 [[
 	禁止搬運！！！
 	裝備自動修理,適用於五格揹包mod,適配六格揹包
+
+	如果不喜歡裝備戴上的時候，自動打開格子，可以啟用【關閉格子自動打開】功能
+	如果不喜歡多餘的格子，可以開啟【從玩家背包尋找材料】這樣就不會有額外格子。但是為了支持提燈放在地上自動修理，還是保留了提燈的格子。
+	已知遊戲特性：
+		特性1：當裝備擁有格子以後，就不能被擬態蠕蟲複製。如果需要擬態蠕蟲複製，請關閉格子功能。
+		特性2：帶有格子的裝備不能放入打包紙。
+
 	當前僅支持道具:
 	護符(魔光護符,懶人護符)
 	服裝(熊皮背心,清涼夏裝,鬆軟背心,透氣背心,犬牙背心,雨衣,饥饿腰带,嘰嘰喳喳三件套(圍巾/披風/短披肩))
@@ -51,14 +70,14 @@ local DESC_MOD = Adaptive(
 	照明類(提燈,礦工帽,鼴鼠帽)
 	其他武器(警鐘)
 	其他防具(骨頭盔甲,眼面具)
-	版本:2.9
+	版本:3.0
 
 ]])
 
 name = NAME_MOD
 description = DESC_MOD
 author = "Larkin" 
-version = "2.9"
+version = "3.0"
 
 forumthread = "" 
 
