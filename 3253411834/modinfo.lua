@@ -27,7 +27,7 @@ local DESC_MOD = Adaptive(
 	Lighting (Lantern, miner's hat, Moggles, Shadow Thurible)
 	Other Weapon(Alarming Clock)
 	Other Armor(Bone Armor,EyeMask)
-	Version:3.0
+	Version:3.1
 ]],
 [[
 	禁止搬运！！！
@@ -48,7 +48,7 @@ local DESC_MOD = Adaptive(
 		其他武器(警钟)
 		其他防具(骨头盔甲,眼面具)
 	待补充:餐桌灯,棱镜/勋章的装备
-	版本:3.0
+	版本:3.1
 ]]
 ,
 [[
@@ -70,14 +70,14 @@ local DESC_MOD = Adaptive(
 	照明類(提燈,礦工帽,鼴鼠帽,暗影香爐)
 	其他武器(警鐘)
 	其他防具(骨頭盔甲,眼面具)
-	版本:3.0
+	版本:3.1
 
 ]])
 
 name = NAME_MOD
 description = DESC_MOD
 author = "Larkin" 
-version = "3.0"
+version = "3.1"
 
 forumthread = "" 
 

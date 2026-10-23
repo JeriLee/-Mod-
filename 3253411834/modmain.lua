@@ -643,67 +643,10 @@ local function checkAndRepair(inst, prefabConfig, callBack, isFuelNeedFunc)
             end
         end
     end
-    callBack(fuelAdded)
-end
-
-local function checkAndRepair2(inst, prefabConfig, isFuelNeedFunc)
-    local doer = inst.components.inventoryitem.owner
-    local fuelFinded = nil
-    if isPlayerInventoryEnable and doer ~= nil then
-        fuelFinded = findItemFromPlayerInventory(doer, inst.prefab)
-    elseif inst.components.container ~= nil then
-        fuelFinded = inst.components.container:FindItem(function () return true end )
+    if callBack ~= nil then
+        callBack(fuelAdded)
     end
-    -- if prefabConfig.usemaster then
-    --     LogDebug("tophat2 used K1")
-    --     if inst.components.magiciantool ~= nil then
-    --         LogDebug("tophat2 used K2")
-    --         if inst.components.magiciantool ~= nil then
-    --             LogDebug("tophat2 used K3", inst.components.magiciantool)
-    --             for k,v in pairs(inst.components.magiciantool) do
-    --                 LogDebug("tophat2 used K4", k, "->", v)
-    --             end
-    --         end
-    --         if inst.components.container_proxy ~= nil then
-    --             fuelFinded = magicInst.components.container_proxy.master.components.container:FindItem(function () return true end )
-    --             LogDebug("tophat2 used K100", fuelFinded)
-    --         end
-    --     else
-    --         fuelFinded = inst.components.container:FindItem(function () return true end )
-    --     end
-    -- else
-    --     fuelFinded = inst.components.container:FindItem(function () return true end )
-    -- end
-
-    local fuelAdded = false
-    if fuelFinded ~= nil then
-        local needAdd = isFuelNeedFunc == nil and true or isFuelNeedFunc(inst, fuelFinded)
-        if needAdd == false then
-            -- do nothing
-        elseif fuelFinded.components.stackable == nil then
-            if prefabConfig.repair_type == repair_type.sewing then
-                fuelFinded.components.sewing:DoSewing(inst, doer)
-            else
-                LogError("stackable is nil ", fuelFinded ~= nil and fuelFinded.name or "fuelIsNil", inst.name)
-            end
-        else
-            local usedFuel = fuelFinded.components.stackable:Get(1)
-
-            local actionType = prefabConfig.repair_type ~= nil and prefabConfig.repair_type or prefabConfig.type
-            if actionType == repair_type.forge then
-                inst.components.forgerepairable:Repair(doer, usedFuel)
-            elseif actionType == repair_type.fuel then
-                inst.components.fueled:TakeFuelItem(usedFuel, doer)
-            elseif actionType == repair_type.sewing then
-                usedFuel.components.sewing:DoSewing(inst, doer)
-            elseif actionType == repair_type.repairable then
-                inst.components.repairable:Repair(doer, usedFuel)
-            elseif actionType == repair_type.eat then
-                inst.components.eater:Eat(usedFuel,doer)
-            end
-            fuelAdded = true
-        end
-    end
+    return fuelAdded
 end
 
 local function fuelDeleped(inst, prefabConfig)
@@ -749,7 +692,7 @@ local function allDodelta(inst, prefabConfig)
     inst:ListenForEvent("percentusedchange", function(i, data)
         LogDebug("allDodelta", inst.name, data.percent)
 
-        checkAndRepair2(inst, prefabConfig, prefabConfig.isFuelNeed and prefabConfig.isFuelNeed or is_fuel_need);
+        checkAndRepair(inst, prefabConfig, nil, prefabConfig.isFuelNeed and prefabConfig.isFuelNeed or is_fuel_need);
     end)
 end
 
