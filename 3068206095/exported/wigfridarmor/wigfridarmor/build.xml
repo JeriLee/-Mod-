@@ -1,0 +1,16 @@
+<Build name="wigfridarmor.scml">
+ <Symbol name="swap_body">
+  <Frame framenum="0" duration="1" image="swap_body-0" w="92" h="128" x="1.800533" y="-41.799553"/>
+  <Frame framenum="1" duration="1" image="swap_body-1" w="92" h="128" x="-2.849518" y="-41.999489"/>
+  <Frame framenum="2" duration="1" image="swap_body-2" w="92" h="128" x="2.000538" y="-40.474495"/>
+  <Frame framenum="3" duration="1" image="swap_body-3" w="92" h="128" x="2.250504" y="-41.799553"/>
+  <Frame framenum="4" duration="1" image="swap_body-4" w="88" h="128" x="1.775486" y="-41.524483"/>
+  <Frame framenum="5" duration="1" image="swap_body-5" w="92" h="128" x="2.650520" y="-42.399490"/>
+  <Frame framenum="6" duration="1" image="swap_body-6" w="100" h="116" x="-2.624500" y="-36.549511"/>
+  <Frame framenum="7" duration="1" image="swap_body-7" w="100" h="120" x="-12.774498" y="-37.849442"/>
+  <Frame framenum="8" duration="1" image="swap_body-8" w="100" h="116" x="1.775501" y="-36.749496"/>
+  <Frame framenum="9" duration="1" image="swap_body-9" w="96" h="100" x="-4.049477" y="-45.524002"/>
+  <Frame framenum="10" duration="1" image="swap_body-10" w="72" h="104" x="-39.923996" y="-50.948997"/>
+  <Frame framenum="11" duration="1" image="swap_body-13" w="172" h="156" x="5.450508" y="-46.224518"/>
+ </Symbol>
+</Build>
