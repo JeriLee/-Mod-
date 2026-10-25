@@ -19,8 +19,10 @@ local G = require("moonbase_ritual/genv")
 local Config = require("moonbase_ritual/config")
 
 local AddPrefabPostInit = G.Get("AddPrefabPostInit")
+local AddPlayerPostInit = G.Get("AddPlayerPostInit")
 local SpawnElectricHitSparks = G.Get("SpawnElectricHitSparks")
 local net_shortint = G.Get("net_shortint")
+local net_int = G.Get("net_int")
 local TUNING = G.Get("TUNING")
 local TheWorld = G.Lazy("TheWorld")
 
@@ -55,6 +57,12 @@ local function EnsureClassifiedNet(inst)
 	if inst._mod_lightningrod_time == nil then
 		inst._mod_lightningrod_time = net_shortint(inst.GUID,
 			"mod.lightningrod_time", "modlightningrodtimedirty")
+
+		-- HUD 图标的拖动位置（客户端写，服务端读取并存档）
+		inst._mod_lightningrod_posx = net_int(inst.GUID,
+			"mod.lightningrod_posx", "modlightningrodposxdirty")
+		inst._mod_lightningrod_posy = net_int(inst.GUID,
+			"mod.lightningrod_posy", "modlightningrodposydirty")
 	end
 	return inst._mod_lightningrod_time
 end
@@ -208,6 +216,51 @@ local function SetupPersist(inst)
 end
 
 --------------------------------------------------------------------------
+-- 存档：把 HUD 图标的位置存到玩家身上
+--
+-- 位置是客户端拖出来的，写在玩家分类对象（player_classified）的 net 变量上；
+-- 服务端在存盘时把这个值抄进玩家存档，读档时再写回 net 变量，
+-- 于是客户端重连 / 读档后图标会回到玩家上次摆放的位置。
+--------------------------------------------------------------------------
+local function SetupPlayerPersist(inst)
+	if not TheWorld.ismastersim then
+		return
+	end
+
+	-- 幂等
+	if inst._mod_lightningrod_pos_persist then
+		return
+	end
+	inst._mod_lightningrod_pos_persist = true
+
+	local oldOnSave = inst.OnSave
+	inst.OnSave = function(i, data)
+		local ret = oldOnSave ~= nil and oldOnSave(i, data) or data
+		local pc = i.player_classified
+		if ret ~= nil and pc ~= nil and pc._mod_lightningrod_posx ~= nil then
+			ret.modlightningrodpos = {
+				x = pc._mod_lightningrod_posx:value(),
+				y = pc._mod_lightningrod_posy:value(),
+			}
+		end
+		return ret
+	end
+
+	local oldOnLoad = inst.OnLoad
+	inst.OnLoad = function(i, data)
+		if oldOnLoad ~= nil then
+			oldOnLoad(i, data)
+		end
+		local p = data ~= nil and data.modlightningrodpos or nil
+		local pc = i.player_classified
+		if p ~= nil and pc ~= nil and pc._mod_lightningrod_posx ~= nil then
+			pc._mod_lightningrod_posx:set(p.x or 0)
+			pc._mod_lightningrod_posy:set(p.y or 0)
+		end
+	end
+end
+
+--------------------------------------------------------------------------
 -- 主入口
 --------------------------------------------------------------------------
 function LightningRod.Setup()
@@ -239,6 +292,11 @@ function LightningRod.Setup()
 	end
 
 	AddPrefabPostInit("player_classified", SetupClassified)
+
+	-- 玩家存档：保存 HUD 图标位置
+	if AddPlayerPostInit ~= nil then
+		AddPlayerPostInit(SetupPlayerPersist)
+	end
 end
 
 return LightningRod

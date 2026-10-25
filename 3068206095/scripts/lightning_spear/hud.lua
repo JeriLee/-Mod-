@@ -30,6 +30,9 @@ local GetInventoryItemAtlas = G.Get("GetInventoryItemAtlas")
 local EQUIPSLOTS = G.Get("EQUIPSLOTS")
 local AddPlayerPostInit = G.Get("AddPlayerPostInit")
 local AddSimPostInit = G.Get("AddSimPostInit")
+local MOUSEBUTTON_LEFT = G.Get("MOUSEBUTTON_LEFT")
+local RESOLUTION_X = G.Get("RESOLUTION_X")
+local RESOLUTION_Y = G.Get("RESOLUTION_Y")
 
 local LightningRodHud = {}
 
@@ -168,6 +171,159 @@ local function GetBuffTime()
 end
 
 --------------------------------------------------------------------------
+-- 图标位置：存在玩家分类对象（player_classified）的 net 变量上
+--
+-- 客户端拖动时写入，服务端读它并存进玩家存档；
+-- 读档后服务端再写回来，客户端就能恢复上次的位置。
+--------------------------------------------------------------------------
+local function GetClassified()
+	local player = G.Global("ThePlayer")
+	if player == nil then
+		return nil
+	end
+	return player.player_classified
+end
+
+local function GetSavedPos()
+	local pc = GetClassified()
+	if pc == nil or pc._mod_lightningrod_posx == nil then
+		return nil
+	end
+	local x = pc._mod_lightningrod_posx:value()
+	local y = pc._mod_lightningrod_posy:value()
+	if x == nil or y == nil then
+		return nil
+	end
+	-- 两个都是 0 视为"没有保存过"，用默认位置
+	if x == 0 and y == 0 then
+		return nil
+	end
+	return x, y
+end
+
+local function SavePos(x, y)
+	local pc = GetClassified()
+	if pc == nil or pc._mod_lightningrod_posx == nil then
+		return
+	end
+	pc._mod_lightningrod_posx:set(math.floor(x))
+	pc._mod_lightningrod_posy:set(math.floor(y))
+end
+
+--------------------------------------------------------------------------
+-- 命中检测：鼠标是否在雷萃图标上
+--
+-- 用本体前端的"鼠标下的实体"列表来判断，
+-- 因为 HUD 里的 widget 不会像屏幕 widget 那样派发点击事件。
+--------------------------------------------------------------------------
+local function IsMouseOverIcon(badge)
+	local input = G.Global("TheInput")
+	if input == nil or badge.bufficon == nil then
+		return false
+	end
+
+	local entities = input:GetAllEntitiesUnderMouse()
+	for _, inst in pairs(entities or {}) do
+		local w = inst.widget
+		while w ~= nil do
+			if w == badge.bufficon or w == badge then
+				return true
+			end
+			w = w.parent
+		end
+	end
+
+	return false
+end
+
+--------------------------------------------------------------------------
+-- 计算某个 widget 的"世界缩放"
+--
+-- 本体的 Widget:GetWorldScale() 在这个 DST 版本里会崩溃
+-- （UITransform 没有暴露 C++ 的 GetWorldScale 方法），
+-- 所以手动沿父链把每个节点的 UITransform:GetScale() 累乘出来。
+-- 返回 x、y 两个方向的缩放（通常相等）。
+--------------------------------------------------------------------------
+local function GetWorldScaleOf(w)
+	local sx, sy = 1, 1
+	local node = w
+	while node ~= nil and node.inst ~= nil and node.inst.UITransform ~= nil do
+		local lx, ly = node.inst.UITransform:GetScale()
+		sx = sx * (lx or 1)
+		sy = sy * (ly or 1)
+		node = node.parent
+	end
+	if sx == 0 then sx = 1 end
+	if sy == 0 then sy = 1 end
+	return sx, sy
+end
+
+--------------------------------------------------------------------------
+-- 拖动处理
+--
+-- 屏幕坐标 -> UI 坐标的换算方式与本体一致（见 snowmandecoratingscreen 的
+-- ScreenToLocal）：propscale = max(RESOLUTION_X/w, RESOLUTION_Y/h)。
+-- 位移要除以父节点的世界缩放，才能换算回父坐标系。
+--------------------------------------------------------------------------
+local function UpdateDrag(badge)
+	local input = G.Global("TheInput")
+	local sim = G.Global("TheSim")
+	if input == nil or sim == nil or MOUSEBUTTON_LEFT == nil then
+		return
+	end
+
+	local down = input:IsMouseDown(MOUSEBUTTON_LEFT)
+
+	if not badge.dragging then
+		-- 按下且点在图标上 -> 开始拖动
+		if down and IsMouseOverIcon(badge) then
+			badge.dragging = true
+			local mx, my = sim:GetPosition()
+			badge.drag_lastx = mx
+			badge.drag_lasty = my
+			badge.drag_x, badge.drag_y = badge:GetPositionXYZ()
+			Diag("开始拖动雷萃图标")
+		end
+		return
+	end
+
+	-- 松开 -> 结束并保存位置
+	if not down then
+		badge.dragging = false
+		SavePos(badge.drag_x, badge.drag_y)
+		Diag("雷萃图标位置：" .. tostring(badge.drag_x) .. ", " .. tostring(badge.drag_y))
+		return
+	end
+
+	local mx, my = sim:GetPosition()
+	local w, h = sim:GetScreenSize()
+	local propscale = 1
+	if w > 0 and h > 0 and RESOLUTION_X ~= nil and RESOLUTION_Y ~= nil then
+		propscale = math.max(RESOLUTION_X / w, RESOLUTION_Y / h)
+	end
+
+	local dx = (mx - badge.drag_lastx) * propscale
+	local dy = (my - badge.drag_lasty) * propscale
+	badge.drag_lastx = mx
+	badge.drag_lasty = my
+
+	-- 换算回徽章自身坐标系：
+	-- 1) propscale 已经把屏幕像素折算到根 UI 坐标系（分辨率缩放已经含在里面），
+	--    所以不再除以父链/屏幕根的缩放（那会重复除一次，导致跟手变慢）。
+	-- 2) 只需除以徽章"自身"的缩放（GetWorldScaleOf(badge) 含 .85 本身 +
+	--     HUD 中间层 Status/sidepanel 的缩放，它们通常都是 1）——与本体
+	--    ScreenToLocal 只除以对象自身 IMG_SCALE 的做法一致。
+	-- 3) 屏幕 y 向上为正，鼠标上移 my 增大 -> dy 为正 -> 徽章 y 应增大。
+	local sx, sy = GetWorldScaleOf(badge)
+	if sx == 0 then sx = 1 end
+	if sy == 0 then sy = 1 end
+
+	badge.drag_x = badge.drag_x + dx / sx
+	badge.drag_y = badge.drag_y + dy / sy
+	badge:SetPosition(badge.drag_x, badge.drag_y, 0)
+end
+
+--------------------------------------------------------------------------
 -- 创建 badge 类
 --------------------------------------------------------------------------
 local function EnsureBadgeClass()
@@ -189,12 +345,22 @@ local function EnsureBadgeClass()
 			self.bufficon = self:AddChild(Image(atlas, "lightning_rod.tex", "default.tex"))
 			self.bufficon:SetPosition(0, 42, 0)
 			self.bufficon:SetScale(.4)
-			self.bufficon:SetClickable(false)
+			-- 可点击：这样前端的"鼠标下的实体"检测才能命中它（用于拖动）
+			self.bufficon:SetClickable(true)
 		end
 
 		-- 剩余时间数字（Badge 自带的 num），往下挪一点避开图标
 		self.num:SetPosition(0, -6, 0)
 		self.num:Show()
+
+		-- 拖动状态
+		self.dragging = false
+		self.drag_x = HUD_X
+		self.drag_y = HUD_Y
+		self.drag_lastx = 0
+		self.drag_lasty = 0
+		-- 位置是否已经从存档恢复过
+		self.pos_restored = false
 
 		self:Hide()
 		self:StartUpdating()
@@ -202,6 +368,21 @@ local function EnsureBadgeClass()
 
 	-- 每帧刷新
 	function badgeclass:OnUpdate()
+		-- 拖动处理（要在显示/隐藏之前，保证隐藏状态下也能拖回）
+		UpdateDrag(self)
+
+		-- 首次拿到存档里的位置时应用一次
+		if not self.pos_restored then
+			local x, y = GetSavedPos()
+			if x ~= nil then
+				self.pos_restored = true
+				self.drag_x = x
+				self.drag_y = y
+				self:SetPosition(x, y, 0)
+				Diag("恢复雷萃图标位置：" .. tostring(x) .. ", " .. tostring(y))
+			end
+		end
+
 		local t, where = GetBuffTime()
 
 		if t == nil then
@@ -274,7 +455,8 @@ function LightningRodHud.Setup()
 	-- HUD 可能被重建（复活 / 换人），需要时重新挂上
 	if badge.parent ~= root then
 		root:AddChild(badge)
-		badge:SetPosition(HUD_X, HUD_Y, 0)
+		-- 用当前拖动过的位置，别把玩家摆好的地方重置掉
+		badge:SetPosition(badge.drag_x or HUD_X, badge.drag_y or HUD_Y, 0)
 	end
 
 	Diag("Setup: 指示器已挂到 HUD")

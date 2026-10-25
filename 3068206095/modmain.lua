@@ -48,6 +48,10 @@ require("moonbase_ritual/genv").Init(GLOBAL, {
 	GetInventoryItemAtlas      = GetInventoryItemAtlas,
 	AddPlayerPostInit          = AddPlayerPostInit,
 	AddSimPostInit             = AddSimPostInit,
+	net_int                    = net_int,
+	MOUSEBUTTON_LEFT           = MOUSEBUTTON_LEFT,
+	RESOLUTION_X               = RESOLUTION_X,
+	RESOLUTION_Y               = RESOLUTION_Y,
 })
 require("moonbase_ritual/init").Setup()
 
