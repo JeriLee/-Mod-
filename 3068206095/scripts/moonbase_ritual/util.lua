@@ -4,7 +4,7 @@
 -- 注意：本文件是 require 进来的普通模块，默认 _G 带 strict，
 -- 引擎接口必须显式从 GLOBAL 取（见 genv.lua）。
 
-local G = require("moonbase_ritual/genv")
+local G = require("shared/genv")
 local Config = require("moonbase_ritual/config")
 
 local TUNING = G.Get("TUNING")

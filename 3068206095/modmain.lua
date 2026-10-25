@@ -17,6 +17,19 @@ STRINGS.NAMES.SPEAR_WATHGRITHR_LIGHTNING_CHARGED_MOONFORGED = "月萃充能奔�
 STRINGS.RECIPE_DESC.SPEAR_WATHGRITHR_LIGHTNING_CHARGED_MOONFORGED = "被月光淬炼过的充能奔雷矛，对暗影生物有额外伤害，夜里会缓慢恢复耐久"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.SPEAR_WATHGRITHR_LIGHTNING_CHARGED_MOONFORGED = "月光淬炼的充能战矛。"
 
+-- 古铸状态用 "ancient" 标签标记，不单独做一个 prefab
+-- 名字见 scripts/ancient_cast/config.lua 的 Config.ANCIENT_NAME
+STRINGS.NAMES.SPEAR_ANCIENTCAST = "古铸奔雷矛"
+STRINGS.RECIPE_DESC.SPEAR_ANCIENTCAST = "在远古伪科学站用 5 个铥矿古铸过的奔雷矛，对巨人 boss 有额外伤害，携带它时免疫蜂后减速"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.SPEAR_ANCIENTCAST = "远古伪科学铸就的战矛。"
+
+STRINGS.NAMES.SPEAR_WATHGRITHR_LIGHTNING_CHARGED_ANCIENTCAST = "古铸充能奔雷矛"
+STRINGS.RECIPE_DESC.SPEAR_WATHGRITHR_LIGHTNING_CHARGED_ANCIENTCAST = "在远古伪科学站用 5 个铥矿古铸过的充能奔雷矛，对巨人 boss 有额外伤害，携带它时免疫蜂后减速"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.SPEAR_WATHGRITHR_LIGHTNING_CHARGED_ANCIENTCAST = "远古伪科学铸就的充能战矛。"
+
+-- 古铸失败时的提示（本体会用角色语音念出来）
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.NEEDTHULECITE = "古铸需要 5 个铥矿。"
+
 
 --------------------------------------------------------------------------
 -- 奔雷矛 · 月台充能
@@ -29,7 +42,7 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.SPEAR_WATHGRITHR_LIGHTNING_CHARGED_MOONFORGE
 --
 -- 顺序不能改：Init 必须早于任何 require("moonbase_ritual/...")。
 --------------------------------------------------------------------------
-require("moonbase_ritual/genv").Init(GLOBAL, {
+require("shared/genv").Init(GLOBAL, {
 	AddAction                  = AddAction,
 	AddComponentAction         = AddComponentAction,
 	AddStategraphActionHandler = AddStategraphActionHandler,
@@ -53,7 +66,16 @@ require("moonbase_ritual/genv").Init(GLOBAL, {
 	RESOLUTION_X               = RESOLUTION_X,
 	RESOLUTION_Y               = RESOLUTION_Y,
 })
+
 require("moonbase_ritual/init").Setup()
+
+--------------------------------------------------------------------------
+-- 古铸（远古伪科学站 · 5 铥矿）
+-- 与月台仪式互不相干的独立路线：给奔雷矛做一次古铸，
+-- 武器获得"携带时免疫蜂后减速"这个新功能。
+-- 实现见 scripts/ancient_cast/ 目录
+--------------------------------------------------------------------------
+require("ancient_cast/setup").Setup()
 
 --------------------------------------------------------------------------
 -- 奔雷矛 · 避雷针充能

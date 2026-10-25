@@ -4,7 +4,8 @@
 -- 注意：本文件是 require 进来的普通模块，默认 _G 带 strict，
 -- 引擎接口必须显式从 GLOBAL 取（见 genv.lua）。
 
-local G = require("moonbase_ritual/genv")
+local G = require("shared/genv")
+local Shared = require("shared/weapon")
 
 local GetModConfigData = G.Get("GetModConfigData")
 
@@ -12,9 +13,14 @@ local Config = {}
 
 --------------------------------------------------------------------------
 -- 基础 prefab 名
+--
+-- 奔雷矛的 prefab 名放在 shared/weapon.lua：
+-- 月台仪式与古铸改的是同一把矛，两边共用一份，避免对不上。
 --------------------------------------------------------------------------
-Config.SPEAR = "spear_wathgrithr_lightning"
-Config.SPEAR_CHARGED = "spear_wathgrithr_lightning_charged"
+Config.SPEAR = Shared.SPEAR
+Config.SPEAR_CHARGED = Shared.SPEAR_CHARGED
+Config.SPEAR_SKINS = Shared.SPEAR_SKINS
+
 Config.REPAIR_MATERIAL = "thulecite_pieces"
 
 -- 月淬标记标签：带此标签的奔雷矛 = 已被月光淬炼过
@@ -23,10 +29,8 @@ Config.MOON_TAG = "moon"
 -- 月淬后对暗影阵营的增伤倍数（玻璃刀为 1.25，即 +25%）
 Config.SHADOW_DAMAGE_BONUS = 1.25
 
--- 月淬后的显示名称
--- 普通形态与充能形态分别对应不同的名字
-Config.MOONFORGED_NAME = "月萃奔雷矛"
-Config.MOONFORGED_CHARGED_NAME = "月萃充能奔雷矛"
+-- 月淬后的显示名称不再在这里定义，改由共享命名函数统一生成
+-- （见 shared/spearname.lua：前缀「月萃 → 古铸 → 基础名」动态拼接）
 
 --------------------------------------------------------------------------
 -- 避雷针给奔雷矛的加成（见 scripts/lightning_spear/lightningrod.lua）
@@ -60,9 +64,6 @@ Config.BEAM_COLOUR_FRONT = { 1, 1, 1, 1 }       -- 另一侧：白色
 
 -- 预充能最短时长（对齐原版 moonbase 的 MIN_CHARGE_START_DELAY = 1）
 Config.MIN_CHARGE_START_DELAY = 1
-
--- 奔雷矛的全部皮肤后缀
-Config.SPEAR_SKINS = { "lunar", "valkyrie", "wrestle", "northern" }
 
 --------------------------------------------------------------------------
 -- 模组配置读取

@@ -22,7 +22,7 @@
 -- 所有引擎接口都要从 genv 桥接表取（见 genv.lua）。
 -- ThePlayer / TheFrontEnd 都是运行时才赋值的全局，要用 G.Global 实时取。
 
-local G = require("moonbase_ritual/genv")
+local G = require("shared/genv")
 
 local TUNING = G.Get("TUNING")
 local Class = G.Get("Class")

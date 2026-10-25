@@ -21,7 +21,7 @@
 --
 -- 用法：
 --   -- modmain.lua（顺序不能改）
---   require("moonbase_ritual/genv").Init(GLOBAL, {
+--   require("shared/genv").Init(GLOBAL, {
 --       AddAction                  = AddAction,
 --       AddComponentAction         = AddComponentAction,
 --       AddStategraphActionHandler = AddStategraphActionHandler,
@@ -37,7 +37,7 @@
 --   require("moonbase_ritual/init").Setup()
 --
 --   -- 任意模块
---   local G = require("moonbase_ritual/genv")
+--   local G = require("shared/genv")
 --   local TUNING = G.Get("TUNING")                 -- 加载期接口
 --   local TheWorld = G.Global("TheWorld")          -- 运行时全局（实时取）
 
@@ -56,14 +56,14 @@ end
 
 local function EnsureAPI()
 	if api == nil then
-		error("moonbase_ritual/genv: Init 未调用，请检查 modmain.lua 的加载顺序")
+		error("shared/genv: Init 未调用，请检查 modmain.lua 的加载顺序")
 	end
 	return api
 end
 
 local function EnsureGlobal()
 	if global == nil then
-		error("moonbase_ritual/genv: Init 未注入 GLOBAL，请检查 modmain.lua 的加载顺序")
+		error("shared/genv: Init 未注入 GLOBAL，请检查 modmain.lua 的加载顺序")
 	end
 	return global
 end
@@ -122,7 +122,7 @@ function G.Lazy(name)
 			if type(v) == "function" then
 				return v(...)
 			end
-			error("moonbase_ritual/genv: GLOBAL." .. tostring(name) .. " 不可调用", 2)
+			error("shared/genv: GLOBAL." .. tostring(name) .. " 不可调用", 2)
 		end,
 	})
 end

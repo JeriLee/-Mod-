@@ -10,7 +10,7 @@
 --
 -- 注意：本文件是 require 进来的普通模块，引擎接口从 GLOBAL 取。
 
-local G = require("moonbase_ritual/genv")
+local G = require("shared/genv")
 
 local SpawnPrefab = G.Lazy("SpawnPrefab")
 local TUNING = G.Get("TUNING")

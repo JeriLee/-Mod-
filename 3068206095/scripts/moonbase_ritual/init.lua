@@ -19,7 +19,7 @@
 --
 -- 注意：本文件是 require 进来的普通模块，引擎接口从 GLOBAL 取。
 
-local G = require("moonbase_ritual/genv")
+local G = require("shared/genv")
 local Config = require("moonbase_ritual/config")
 local Moonforged = require("moonbase_ritual/moonforged")
 local MoonBind = require("moonbase_ritual/moonbase_bind")
@@ -75,6 +75,11 @@ function MoonbaseRitual.Setup()
 	end
 
 	-- 1) 动作与输入
+	--
+	-- 注意：AddComponentAction 的注册顺序在客户端与服务端必须完全一致，
+	-- 因为模组的组件动作是靠"注册顺序"生成 id 再同步过去的。
+	-- 月台仪式这里只注册 "inspectable"（SCENE），
+	-- 古铸的组件动作由 ancient_cast/setup.lua 注册，两个模块互不干扰。
 	MoonActions.Register()
 
 	-- 2) 月台本体：net 变量 / trader / workable / 充能流程

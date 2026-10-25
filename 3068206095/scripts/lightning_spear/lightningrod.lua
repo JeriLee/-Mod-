@@ -15,7 +15,7 @@
 -- 注意：batteryuser 组件是通过 AddPrefabPostInit 挂上的，
 -- 客户端服务端都会执行，所以右键避雷针时客户端能正常显示该动作。
 
-local G = require("moonbase_ritual/genv")
+local G = require("shared/genv")
 local Config = require("moonbase_ritual/config")
 
 local AddPrefabPostInit = G.Get("AddPrefabPostInit")
@@ -86,8 +86,16 @@ local function SyncOwnerTime(inst)
 		return
 	end
 
+	-- 持有者不一定是玩家（可能是 gelblob 之类的怪物捡走了矛），
+	-- 只有玩家才有 player_classified（分类对象），这里必须判空，
+	-- 否则把 nil 传进 EnsureClassifiedNet 会直接崩溃。
+	local classified = owner.player_classified
+	if classified == nil then
+		return
+	end
+
 	inst._lightningrod_owner = owner
-	local netvar = EnsureClassifiedNet(owner.player_classified)
+	local netvar = EnsureClassifiedNet(classified)
 	if netvar ~= nil then
 		netvar:set(math.max(0, math.floor(inst._lightningrod_buff_time or 0)))
 	end

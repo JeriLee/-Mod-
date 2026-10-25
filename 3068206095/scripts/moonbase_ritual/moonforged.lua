@@ -11,8 +11,9 @@
 -- 注意：本文件是 require 进来的普通模块，默认 _G 带 strict，
 -- 引擎接口必须显式从 GLOBAL 取（见 genv.lua）。
 
-local G = require("moonbase_ritual/genv")
+local G = require("shared/genv")
 local Config = require("moonbase_ritual/config")
+local SpearName = require("shared/spearname")
 
 local TheWorld = G.Lazy("TheWorld")
 local TUNING = G.Get("TUNING")
@@ -97,28 +98,17 @@ end
 --------------------------------------------------------------------------
 -- 月淬后改名
 --
--- 物品的显示名由 EntityScript:GetBasicDisplayName() 决定，优先级为：
---     displaynamefn  >  nameoverride  >  name
--- 奔雷矛没有设置实体级 nameoverride，所以挂在 displaynamefn 上最合适。
+-- 名称由共享的通用命名函数（shared/spearname.lua）动态生成：
+-- 它会同时读取"月萃"和"古铸"两个标记，按「月萃 → 古铸 → 基础名」
+-- 的顺序拼接，因此两种效果任意组合都能正确显示。
 --
--- displaynamefn 可以在 prefab 初始化时挂上：AddPrefabPostInit 的回调
--- 客户端和服务端都会执行，因此只要把"是否已月淬"同步到客户端，
--- 两端显示出来的名字就一致。
---
--- 普通形态叫「月萃奔雷矛」，充能形态叫「月萃充能奔雷矛」。
--- 这里按 prefab 名里是否带 "_charged" 来区分，
--- 这样即使带皮肤生成（prefab 名可能被写成皮肤名）也能正确判断。
+-- 本函数只负责：
+--   1. 创建"是否已月淬"的 net 变量（客户端可见标记）
+--   2. 调用通用函数挂载 displaynamefn（幂等，与古铸共用同一个）
 --
 -- 注意："moon" 标签既不会同步到客户端，也不会随存档保存，
 -- 所以这里单独用一个 net_bool 作为客户端可见的标记。
 --------------------------------------------------------------------------
-local function GetMoonforgedName(prefab)
-	if prefab ~= nil and string.find(prefab, "_charged", 1, true) ~= nil then
-		return Config.MOONFORGED_CHARGED_NAME
-	end
-	return Config.MOONFORGED_NAME
-end
-
 function Moonforged.SetupName(inst)
 	-- net 变量必须在客户端和服务端都创建，且名字一致
 	if inst._moonforged_net == nil then
@@ -126,17 +116,14 @@ function Moonforged.SetupName(inst)
 			"thunderspearmoonforgeddirty")
 	end
 
-	-- 避免重复挂载（比如同一 prefab 被多次 post init）
-	if inst._moonforged_namefn == nil then
-		inst._moonforged_namefn = true
-		local oldfn = inst.displaynamefn
-		inst.displaynamefn = function(i)
-			if i._moonforged_net ~= nil and i._moonforged_net:value() then
-				return GetMoonforgedName(i.prefab)
-			end
-			return oldfn ~= nil and oldfn(i) or nil
-		end
-	end
+	-- 统一挂载 displaynamefn（幂等），同时读取月萃 + 古铸两个标记
+	SpearName.SetupDisplayName(inst,
+		function(i)
+			return i._moonforged_net ~= nil and i._moonforged_net:value()
+		end,
+		function(i)
+			return i._ancientcast_net ~= nil and i._ancientcast_net:value()
+		end)
 end
 
 --------------------------------------------------------------------------
