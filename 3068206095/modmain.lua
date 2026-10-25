@@ -38,10 +38,16 @@ require("moonbase_ritual/genv").Init(GLOBAL, {
 	ActionHandler              = ActionHandler,
 	TUNING                     = TUNING,
 	net_bool                   = net_bool,
+	net_shortint               = net_shortint,
 	ACTIONS                    = ACTIONS,
 	STRINGS                    = STRINGS,
 	FindEntity                 = FindEntity,
 	SpawnElectricHitSparks     = SpawnElectricHitSparks,
+	Class                      = Class,
+	EQUIPSLOTS                 = EQUIPSLOTS,
+	GetInventoryItemAtlas      = GetInventoryItemAtlas,
+	AddPlayerPostInit          = AddPlayerPostInit,
+	AddSimPostInit             = AddSimPostInit,
 })
 require("moonbase_ritual/init").Setup()
 
@@ -53,3 +59,12 @@ require("moonbase_ritual/init").Setup()
 -- 实现见 scripts/lightning_spear/lightningrod.lua
 --------------------------------------------------------------------------
 require("lightning_spear/lightningrod").Setup()
+
+--------------------------------------------------------------------------
+-- 雷萃状态的 HUD 指示器（图标 + 倒计时）
+--
+-- 客户端进入世界时 HUD / ThePlayer 可能都还没就绪，
+-- 所以 hud 模块内部注册了多个入口（玩家实体 / 世界开始 / 立即尝试）
+-- 并带定时重试，只要有一个能跑起来就会挂上。
+--------------------------------------------------------------------------
+require("lightning_spear/hud").Start()

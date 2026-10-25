@@ -20,6 +20,7 @@ local Config = require("moonbase_ritual/config")
 
 local AddPrefabPostInit = G.Get("AddPrefabPostInit")
 local SpawnElectricHitSparks = G.Get("SpawnElectricHitSparks")
+local net_shortint = G.Get("net_shortint")
 local TUNING = G.Get("TUNING")
 local TheWorld = G.Lazy("TheWorld")
 
@@ -27,6 +28,70 @@ local LightningRod = {}
 
 -- 加成持续时间：一天（= 一个完整昼夜循环）
 local BUFF_DURATION = TUNING.TOTAL_DAY_TIME
+
+--------------------------------------------------------------------------
+-- 内部：创建客户端可见的"剩余时间"net 变量
+--
+-- net 变量不随存档保存，读档后需要重新写回当前剩余时间。
+-- 客户端据此显示 HUD 上的图标与倒计时。
+--------------------------------------------------------------------------
+local function EnsureNetTime(inst)
+	if inst._lightningrod_net == nil then
+		inst._lightningrod_net = net_shortint(inst.GUID, "spear.lightningrod_time",
+			"lightningrodtimedirty")
+	end
+	return inst._lightningrod_net
+end
+
+--------------------------------------------------------------------------
+-- 内部：把剩余时间同步到"持有者"身上 —— HUD 的备用数据通道
+--
+-- 武器上的 net 变量只有拿到武器实体才能读到；
+-- 而玩家分类对象（player_classified）上的 net 变量是本体 HUD 用的通道
+-- （本体的 buff 图标 _buffsymbol 就是这么同步的），更可靠。
+-- 两条通道都写，客户端优先读武器，读不到再读分类对象。
+--------------------------------------------------------------------------
+local function EnsureClassifiedNet(inst)
+	if inst._mod_lightningrod_time == nil then
+		inst._mod_lightningrod_time = net_shortint(inst.GUID,
+			"mod.lightningrod_time", "modlightningrodtimedirty")
+	end
+	return inst._mod_lightningrod_time
+end
+
+local function SyncOwnerTime(inst)
+	local owner = nil
+	if inst.components.inventoryitem ~= nil then
+		owner = inst.components.inventoryitem:GetGrandOwner()
+	end
+
+	if owner == nil then
+		-- 已经没有持有者了，把之前的持有者那边清零
+		local prev = inst._lightningrod_owner
+		inst._lightningrod_owner = nil
+		if prev ~= nil and prev.player_classified ~= nil then
+			local netvar = EnsureClassifiedNet(prev.player_classified)
+			if netvar ~= nil then
+				netvar:set(0)
+			end
+		end
+		return
+	end
+
+	inst._lightningrod_owner = owner
+	local netvar = EnsureClassifiedNet(owner.player_classified)
+	if netvar ~= nil then
+		netvar:set(math.max(0, math.floor(inst._lightningrod_buff_time or 0)))
+	end
+end
+
+local function SyncNetTime(inst)
+	local netvar = EnsureNetTime(inst)
+	if netvar ~= nil then
+		netvar:set(math.max(0, math.floor(inst._lightningrod_buff_time or 0)))
+	end
+	SyncOwnerTime(inst)
+end
 
 --------------------------------------------------------------------------
 -- 内部：设置 / 清除武器的伤害加成
@@ -62,9 +127,11 @@ local function StartBuffTimer(inst, duration)
 	end
 
 	inst._lightningrod_buff_time = duration
+	SyncNetTime(inst)
 
 	inst._lightningrod_buff_task = inst:DoPeriodicTask(1, function(i)
 		i._lightningrod_buff_time = (i._lightningrod_buff_time or 0) - 1
+		SyncNetTime(i)
 		if i._lightningrod_buff_time <= 0 then
 			i._lightningrod_buff_task = nil
 			-- 倍数置空即等于恢复原始伤害
@@ -145,6 +212,10 @@ end
 --------------------------------------------------------------------------
 function LightningRod.Setup()
 	local function SetupSpear(inst)
+		-- net 变量：客户端服务端都要创建，名字一致
+		-- 客户端靠它显示 HUD 上的雷萃图标与倒计时
+		EnsureNetTime(inst)
+
 		-- batteryuser：让奔雷矛可以作为"充能者"去接触避雷针
 		if inst.components.batteryuser == nil then
 			inst:AddComponent("batteryuser")
@@ -155,11 +226,19 @@ function LightningRod.Setup()
 		SetupPersist(inst)
 	end
 
+	-- 玩家分类对象上的 net 变量（HUD 的备用数据通道）
+	-- 客户端服务端都要创建，名字一致
+	local function SetupClassified(inst)
+		EnsureClassifiedNet(inst)
+	end
+
 	-- 只给"普通奔雷矛"加（充能形态是升级产物，不参与这条路线）
 	AddPrefabPostInit(Config.SPEAR, SetupSpear)
 	for _, skin in ipairs(Config.SPEAR_SKINS) do
 		AddPrefabPostInit(Config.SPEAR .. "_" .. skin, SetupSpear)
 	end
+
+	AddPrefabPostInit("player_classified", SetupClassified)
 end
 
 return LightningRod
