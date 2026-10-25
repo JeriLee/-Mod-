@@ -1,0 +1,41 @@
+<?xml version="1.0" ?>
+<spriter_data generator="BrashMonkey Spriter" generator_version="b5" scml_version="1.0">
+	<folder id="0" name="moonforged_spear">
+		<file height="360" id="0" name="moonforged_spear/moonforged_spear-0.png" pivot_x="0.297195" pivot_y="0.149268" width="226"/>
+		<file height="360" id="1" name="moonforged_spear/moonforged_spear-1.png" pivot_x="0.297195" pivot_y="0.149268" width="226"/>
+		<file height="360" id="2" name="moonforged_spear/moonforged_spear-2.png" pivot_x="0.297195" pivot_y="0.149268" width="226"/>
+		<file height="360" id="3" name="moonforged_spear/moonforged_spear-3.png" pivot_x="0.297195" pivot_y="0.149268" width="226"/>
+	</folder>
+	<entity id="0" name="moonforged_spear">
+		<animation id="0" name="idle" length="400" looping="true">
+			<mainline>
+				<key id="0" time="0">
+					<object_ref abs_a="1" abs_angle="360" abs_pivot_x="0.297195" abs_pivot_y="0.149268" abs_scale_x="1" abs_scale_y="1" abs_x="0" abs_y="0" file="0" folder="0" id="0" key="0" name="moonforged_spear" timeline="0" z_index="0"/>
+				</key>
+				<key id="1" time="100">
+					<object_ref abs_a="1" abs_angle="360" abs_pivot_x="0.297195" abs_pivot_y="0.149268" abs_scale_x="1" abs_scale_y="1" abs_x="0" abs_y="0" file="1" folder="0" id="0" key="1" name="moonforged_spear" timeline="0" z_index="0"/>
+				</key>
+				<key id="2" time="200">
+					<object_ref abs_a="1" abs_angle="360" abs_pivot_x="0.297195" abs_pivot_y="0.149268" abs_scale_x="1" abs_scale_y="1" abs_x="0" abs_y="0" file="2" folder="0" id="0" key="2" name="moonforged_spear" timeline="0" z_index="0"/>
+				</key>
+				<key id="3" time="300">
+					<object_ref abs_a="1" abs_angle="360" abs_pivot_x="0.297195" abs_pivot_y="0.149268" abs_scale_x="1" abs_scale_y="1" abs_x="0" abs_y="0" file="3" folder="0" id="0" key="3" name="moonforged_spear" timeline="0" z_index="0"/>
+				</key>
+			</mainline>
+			<timeline id="0" name="moonforged_spear">
+				<key id="0" time="0" spin="1">
+					<object abs_a="1" abs_angle="360" abs_pivot_x="0.297195" abs_pivot_y="0.149268" abs_scale_x="1" abs_scale_y="1" abs_x="0" abs_y="0" file="0" folder="0" pivot_x="0.297195" pivot_y="0.149268" scale_x="1" scale_y="1" x="0" y="0"/>
+				</key>
+				<key id="1" time="100" spin="1">
+					<object abs_a="1" abs_angle="360" abs_pivot_x="0.297195" abs_pivot_y="0.149268" abs_scale_x="1" abs_scale_y="1" abs_x="0" abs_y="0" file="1" folder="0" pivot_x="0.297195" pivot_y="0.149268" scale_x="1" scale_y="1" x="0" y="0"/>
+				</key>
+				<key id="2" time="200" spin="1">
+					<object abs_a="1" abs_angle="360" abs_pivot_x="0.297195" abs_pivot_y="0.149268" abs_scale_x="1" abs_scale_y="1" abs_x="0" abs_y="0" file="2" folder="0" pivot_x="0.297195" pivot_y="0.149268" scale_x="1" scale_y="1" x="0" y="0"/>
+				</key>
+				<key id="3" time="300" spin="1">
+					<object abs_a="1" abs_angle="360" abs_pivot_x="0.297195" abs_pivot_y="0.149268" abs_scale_x="1" abs_scale_y="1" abs_x="0" abs_y="0" file="3" folder="0" pivot_x="0.297195" pivot_y="0.149268" scale_x="1" scale_y="1" x="0" y="0"/>
+				</key>
+			</timeline>
+		</animation>
+	</entity>
+</spriter_data>

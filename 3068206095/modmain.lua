@@ -2,26 +2,15 @@ GLOBAL.setmetatable(env,{__index=function(t,k) return GLOBAL.rawget(GLOBAL,k) en
 
 
 PrefabFiles = {
-	"wigfridarmor",
-	"moonforged_spear",
 }
 
 Assets = {
 }
 
-STRINGS.NAMES.WIGFRIDARMOR = "女武神战甲"
-STRINGS.NAMES.MOONFORGED_SPEAR = "月淬奔雷矛"
-STRINGS.RECIPE_DESC.MOONFORGED_SPEAR = "被月光淬炼过的奔雷矛，对暗影生物有额外伤害，夜里会缓慢恢复耐久"
-STRINGS.CHARACTERS.GENERIC.DESCRIBE.MOONFORGED_SPEAR = "月光淬炼的战矛。"
-STRINGS.RECIPE_DESC.WIGFRIDARMOR = "女武神要有像样的战甲，我看石头和金子就很合适嘛"
-STRINGS.CHARACTERS.GENERIC.DESCRIBE.WIGFRIDARMOR = "他很适合女武神."
-
-AddRecipe("wigfridarmor",
-{Ingredient("goldnugget", 2),Ingredient("rocks", 2)},
-RECIPETABS.WAR, TECH.NONE,
-nil, nil, nil, nil, "valkyrie",
-"images/inventoryimages/wigfridarmor.xml",
-"wigfridarmor.tex")
+-- 月淬状态用 "moon" 标签标记，不再单独做一个 prefab
+STRINGS.NAMES.SPEAR_MOONFORGED = "月淬奔雷矛"
+STRINGS.RECIPE_DESC.SPEAR_MOONFORGED = "被月光淬炼过的奔雷矛，对暗影生物有额外伤害，夜里会缓慢恢复耐久"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.SPEAR_MOONFORGED = "月光淬炼的战矛。"
 
 
 --------------------------------------------------------------------------
@@ -30,16 +19,21 @@ nil, nil, nil, nil, "valkyrie",
 
 local SPEAR = "spear_wathgrithr_lightning"
 local SPEAR_CHARGED = "spear_wathgrithr_lightning_charged"
-local MOONFORGED_SPEAR = "moonforged_spear"
 local REPAIR_MATERIAL = "thulecite_pieces"
 
--- 月淬奔雷矛固定使用的 lunar 皮肤 build（与 moonforged_spear.lua 中一致）
-local MOONFORGED_SKIN = "spear_wathgrithr_lightning_lunar"
+-- 月淬标记标签：带此标签的奔雷矛 = 已被月光淬炼过
+local MOON_TAG = "moon"
+
+-- 月淬后对暗影阵营的增伤倍数（玻璃刀为 1.25，即 +25%）
+local SHADOW_DAMAGE_BONUS = 1.25
 
 -- 奔雷矛在月台上显示用的 build 符号
 -- （普通形态和充能形态公用一套build 和 swap 符号） 见 scripts/prefabs/spear_wathgrithr.lua
 local SPEAR_SWAP_BUILD = "spear_wathgrithr_lightning"
 local SPEAR_SWAP_SYMBOL = "swap_spear_wathgrithr_lightning"
+
+-- 注：月淬奔雷矛的自定义外观资源已归档到仓库根目录 Arts/，不再随模组发布，
+-- 相关外观统一复用基础奔雷矛的 build/symbol（见上方 SPEAR_SWAP_BUILD / SPEAR_SWAP_SYMBOL）。
 
 -- 月圆充能光柱/脉冲颜色（RGBA，0~1）
 -- 原版月台光柱是青白色；这里用乘法着色(SetMultColour)把它染成指定颜色。
@@ -67,6 +61,9 @@ local REPAIR_HP = GetCfg("ThunderSpear_RepairHP", 2)
 
 
 if ENABLE then
+
+	-- 前向声明：实际实现在文件下方（依赖 AddNightRepair / UnlockChargedSpear）
+	local ApplyMoonforged
 
 	-- 预充能最短时长 （对齐原版 moonbase 的 MIN_CHARGE_START_DELAY = 1)
 	local MIN_CHARGE_START_DELAY = 1
@@ -114,12 +111,7 @@ if ENABLE then
 	local function ApplySpearSymbol(inst)
 		local proxy = inst._staffinst
 
-		-- 月淬奔雷矛：固定 lunar 皮肤外观
-		if proxy ~= nil and proxy:IsValid() and proxy.prefab == MOONFORGED_SPEAR then
-			inst.AnimState:OverrideItemSkinSymbol("swap_staffs", MOONFORGED_SKIN, SPEAR_SWAP_SYMBOL, proxy.GUID, SPEAR_SWAP_BUILD)
-			return
-		end
-
+		-- 自定义手持模型已归档到 Arts/，这里统一走基础奔雷矛资源
 		local skin_build = nil
 		if proxy ~= nil and proxy:IsValid() and proxy.GetSkinBuild ~= nil then
 			skin_build = proxy:GetSkinBuild()
@@ -257,8 +249,8 @@ if ENABLE then
 			return
 		end
 
-		-- 已经是月淬形态则无需再充能
-		if i._thunderspear == MOONFORGED_SPEAR then
+		-- 已经是月淬形态（带 moon 标签）则无需再充能
+		if i._thunderspear_ismoon then
 			return
 		end
 
@@ -297,6 +289,7 @@ if ENABLE then
 		inst._thunderspear_uses = uses
 		inst._thunderspear_skin = skinname
 		inst._thunderspear_skinid = skinid
+		inst._thunderspear_ismoon = item:HasTag(MOON_TAG)
 		inst._thunderspear_charges = 0
 		inst._thunderspear_charging = nil
 
@@ -338,6 +331,7 @@ if ENABLE then
 		end
 
 		local uses = inst._thunderspear_uses or 1
+		local was_moon = inst._thunderspear_ismoon
 
 		-- 停掉充能
 		inst._thunderspear_charging = nil
@@ -357,17 +351,21 @@ if ENABLE then
 			end
 			result = inst._staffinst
 			inst._staffinst = nil
-		else
-			local spear = inst._thunderspear
-			local skinname = inst._thunderspear_skin
-			local skinid = inst._thunderspear_skinid
-			-- 月淬矛固定 lunar 外观，不传皮肤参数
-			if spear == MOONFORGED_SPEAR then
-				skinname, skinid = nil, nil
+
+			-- 取回时再确认一次月淬状态（ApplyMoonforged 幂等，可重复调用）
+			if was_moon then
+				ApplyMoonforged(result)
 			end
-			result = SpawnPrefab(spear, skinname, skinid)
-			if result ~= nil and result.components.finiteuses ~= nil then
-				result.components.finiteuses:SetPercent(uses)
+		else
+			-- 统一都是普通奔雷矛 prefab，月淬状态由 moon 标签表达
+			result = SpawnPrefab(inst._thunderspear, inst._thunderspear_skin, inst._thunderspear_skinid)
+			if result ~= nil then
+				if result.components.finiteuses ~= nil then
+					result.components.finiteuses:SetPercent(uses)
+				end
+				if was_moon then
+					ApplyMoonforged(result)
+				end
 			end
 		end
 
@@ -376,6 +374,7 @@ if ENABLE then
 		inst._thunderspear_uses = nil
 		inst._thunderspear_skin = nil
 		inst._thunderspear_skinid = nil
+		inst._thunderspear_ismoon = nil
 		inst._thunderspear_charges = 0
 		inst._staffuse = nil
 
@@ -396,6 +395,7 @@ if ENABLE then
 		end
 
 		local uses = inst._thunderspear_uses or 1
+		local was_moon = inst._thunderspear_ismoon
 
 		-- 停充能与特效
 		inst._thunderspear_charging = nil
@@ -415,16 +415,21 @@ if ENABLE then
 			end
 			result = inst._staffinst
 			inst._staffinst = nil
-		else
-			-- 月淬矛固定 lunar 外观，不传皮肤参数
-			local skinname = inst._thunderspear_skin
-			local skinid = inst._thunderspear_skinid
-			if inst._thunderspear == MOONFORGED_SPEAR then
-				skinname, skinid = nil, nil
+
+			-- 取回时再确认一次月淬状态（ApplyMoonforged 幂等，可重复调用）
+			if was_moon then
+				ApplyMoonforged(result)
 			end
-			result = SpawnPrefab(inst._thunderspear, skinname, skinid)
-			if result ~= nil and result.components.finiteuses ~= nil then
-				result.components.finiteuses:SetPercent(uses)
+		else
+			-- 统一都是普通奔雷矛 prefab，月淬状态由 moon 标签表达
+			result = SpawnPrefab(inst._thunderspear, inst._thunderspear_skin, inst._thunderspear_skinid)
+			if result ~= nil then
+				if result.components.finiteuses ~= nil then
+					result.components.finiteuses:SetPercent(uses)
+				end
+				if was_moon then
+					ApplyMoonforged(result)
+				end
 			end
 		end
 
@@ -433,6 +438,7 @@ if ENABLE then
 		inst._thunderspear_uses = nil
 		inst._thunderspear_skin = nil
 		inst._thunderspear_skinid = nil
+		inst._thunderspear_ismoon = nil
 		inst._thunderspear_charges = 0
 		inst._staffuse = nil
 
@@ -719,26 +725,33 @@ if ENABLE then
 				return
 			end
 
-			-- 充满：换成月淬奔雷矛（固定 lunar 外观，不继承原皮肤）
+			-- 充满：仍然使用普通奔雷矛 prefab，只给它打上 moon 标签表示月淬完成
 			local uses = i._thunderspear_uses or 1
 
-			i._thunderspear = MOONFORGED_SPEAR
 			i._thunderspear_charges = 0
+			-- 原矛若是充能矛，月淬后统一还原成普通奔雷矛 + moon 标签
+			i._thunderspear = SPEAR
+			i._thunderspear_ismoon = true
 
 			if i._staffinst ~= nil and i._staffinst:IsValid() then
 				i:RemoveChild(i._staffinst)
 				i._staffinst:Remove()
 			end
-			local proxy = SpawnPrefab(MOONFORGED_SPEAR)
+			local proxy = SpawnPrefab(SPEAR, i._thunderspear_skin, i._thunderspear_skinid)
 			if proxy ~= nil then
 				if proxy.components.finiteuses ~= nil then
 					proxy.components.finiteuses:SetPercent(uses)
 				end
+				-- 先挂到月台上并移出场景，再施加月淬效果
 				i:AddChild(proxy)
 				proxy.Transform:SetPosition(0, 0, 0)
 				proxy:RemoveFromScene()
 				i._staffinst = proxy
 				i._staffuse = nil
+
+				-- 打上月淬标签，增伤 / 夜修都以此为开关
+				proxy:AddTag(MOON_TAG)
+				ApplyMoonforged(proxy)
 			end
 
 			-- 升级武器
@@ -765,6 +778,7 @@ if ENABLE then
 				data.thunderspear_uses = i._thunderspear_uses
 				data.thunderspear_skin = i._thunderspear_skin
 				data.thunderspear_skinid = i._thunderspear_skinid
+				data.thunderspear_ismoon = i._thunderspear_ismoon
 				data.thunderspear_charges = i._thunderspear_charges
 			end
 		end
@@ -779,22 +793,21 @@ if ENABLE then
 				i._thunderspear_uses = data.thunderspear_uses or 1
 				i._thunderspear_skin = data.thunderspear_skin
 				i._thunderspear_skinid = data.thunderspear_skinid
+				i._thunderspear_ismoon = data.thunderspear_ismoon
 				i._thunderspear_charges = data.thunderspear_charges or 0
 
 				i:DoTaskInTime(0, function(ii)
 					if not ii:IsValid() or not MoonHasSpear(ii) then
 						return
 					end
-					-- 月淬矛固定 lunar 外观，不传皮肤参数
-					local skinname = ii._thunderspear_skin
-					local skinid = ii._thunderspear_skinid
-					if ii._thunderspear == MOONFORGED_SPEAR then
-						skinname, skinid = nil, nil
-					end
-					local proxy = SpawnPrefab(ii._thunderspear, skinname, skinid)
+					local proxy = SpawnPrefab(ii._thunderspear, ii._thunderspear_skin, ii._thunderspear_skinid)
 					if proxy ~= nil then
 						if proxy.components.finiteuses ~= nil then
 							proxy.components.finiteuses:SetPercent(ii._thunderspear_uses or 1)
+						end
+						if ii._thunderspear_ismoon then
+							proxy:AddTag(MOON_TAG)
+							ApplyMoonforged(proxy)
 						end
 						ii:AddChild(proxy)
 						proxy.Transform:SetPosition(0, 0, 0)
@@ -809,7 +822,7 @@ if ENABLE then
 					end
 
 					-- 读档：若已是月淬形态，恢复升级完成光球
-					if ii._thunderspear == MOONFORGED_SPEAR then
+					if ii._thunderspear_ismoon then
 						ShowSpearStar(ii)
 					end
 
@@ -874,6 +887,36 @@ if ENABLE then
 		end
 	end
 
+	------------------------------------------------------------------------
+	-- 月淬状态：给普通奔雷矛挂上"月淬"应有的全部效果
+	-- （对暗影阵营 +25% 伤害 + 夜晚缓慢恢复耐久 + 解除装备限制）
+	------------------------------------------------------------------------
+	ApplyMoonforged = function(inst)
+		if not TheWorld.ismastersim or inst == nil or not inst:IsValid() then
+			return
+		end
+
+		-- 保证标签存在
+		if not inst:HasTag(MOON_TAG) then
+			inst:AddTag(MOON_TAG)
+		end
+
+		-- 对暗影阵营增伤（参考 glasscutter.lua）
+		-- AddBonus 同 src + 同 key 会覆盖，重复调用是安全的
+		local damagetypebonus = inst.components.damagetypebonus
+			or inst:AddComponent("damagetypebonus")
+		damagetypebonus:AddBonus("shadowsubmissive", inst, SHADOW_DAMAGE_BONUS)
+
+		-- 解除装备限制
+		UnlockChargedSpear(inst)
+
+		-- 夜晚回耐久：只挂一次周期性任务
+		if not inst._moonforged_nightrepair then
+			inst._moonforged_nightrepair = true
+			AddNightRepair(inst)
+		end
+	end
+
 	-- 升级后 才获得可装备 + 缓慢恢复耐久
 	local function SetupChargedSpear(inst)
 		UnlockChargedSpear(inst)
@@ -910,11 +953,40 @@ if ENABLE then
 		end)
 	end
 
-	-- 月淬奔雷矛：复用充能矛的装备解锁 + 夜晚恢复耐久
-	AddPrefabPostInit(MOONFORGED_SPEAR, function (inst)
-		UnlockChargedSpear(inst)
-		AddNightRepair(inst)
-	end)
+	-- 普通奔雷矛（含各皮肤）：让 moon 标签可以随存档保存/恢复
+	-- AddTag 添加的标签不会写入存档，所以这里额外把标记写进 SaveRecord
+	local function SetupMoonTagPersist(inst)
+		if not TheWorld.ismastersim then
+			return
+		end
+
+		local oldOnSave = inst.OnSave
+		inst.OnSave = function(i, data)
+			local ret = oldOnSave ~= nil and oldOnSave(i, data) or data
+			if i:HasTag(MOON_TAG) then
+				ret = ret or {}
+				ret.moonforged = true
+			end
+			return ret
+		end
+
+		local oldOnLoad = inst.OnLoad
+		inst.OnLoad = function(i, data)
+			if oldOnLoad ~= nil then
+				oldOnLoad(i, data)
+			end
+			-- 读档时补回标签与月淬效果（组件状态不随存档保存）
+			if data ~= nil and data.moonforged then
+				i:AddTag(MOON_TAG)
+				ApplyMoonforged(i)
+			end
+		end
+	end
+
+	AddPrefabPostInit(SPEAR, SetupMoonTagPersist)
+	for _, skin in ipairs(SPEAR_SKINS) do
+		AddPrefabPostInit(SPEAR.."_"..skin, SetupMoonTagPersist)
+	end
 
 	local BEAM_COLOURS = {
 		positronbeam_back  = SPEAR_BEAM_COLOUR_BACK,
