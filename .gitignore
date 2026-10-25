@@ -40,4 +40,5 @@ luac.out
 
 # DST game scripts (reference only)
 scripts/
-
+.vscode/
+client_log.txt
