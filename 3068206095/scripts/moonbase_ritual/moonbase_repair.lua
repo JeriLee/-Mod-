@@ -43,6 +43,12 @@ function MoonRepair.OnMoonRepaired(inst)
 		if inst.components.workable ~= nil then
 			inst.components.workable:SetWorkLeft(inst.components.workable.maxwork)
 		end
+
+		-- 月台修到"完好"后，重新启用 trader，否则唤星者法杖/奔雷矛都无法再插进去。
+		-- 对应本体 OnRepaired -> ToggleMoonCharge 里 IsFixed 时 trader:Enable()。
+		if inst.components.trader ~= nil then
+			inst.components.trader:Enable()
+		end
 	end
 
 	if not IsInAnimState(inst, state) then
