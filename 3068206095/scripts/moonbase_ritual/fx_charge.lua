@@ -11,6 +11,7 @@
 -- 注意：本文件是 require 进来的普通模块，引擎接口从 GLOBAL 取。
 
 local G = require("shared/genv")
+local Util = require("moonbase_ritual/util")
 
 local SpawnPrefab = G.Lazy("SpawnPrefab")
 local TUNING = G.Get("TUNING")
@@ -72,8 +73,14 @@ function FxCharge.Stop(i, finished)
 	i.Light:Enable(false)
 	i.AnimState:ClearBloomEffectHandle()
 	i:RemoveTag("intense")
-	if i.AnimState:IsCurrentAnimation("recharging_full") then
-		i.AnimState:PlayAnimation("full")
+
+	-- 充能动画切回普通待机：按当前月台损坏程度（full/med/medlow/low）
+	-- 切回对应的非充能状态。
+	-- 不能用写死的 "recharging_full"，因为月台在充能过程中可能已被打碎
+	-- （此时动画是 recharging_med / recharging_medlow），只切 full 会漏掉。
+	local state = Util.GetMoonState(i)
+	if i.AnimState:IsCurrentAnimation("recharging_" .. state) then
+		i.AnimState:PlayAnimation(state)
 	end
 end
 

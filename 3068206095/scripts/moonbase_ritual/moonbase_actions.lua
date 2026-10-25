@@ -1,8 +1,10 @@
 -- 月台仪式 · 自定义交互动作
 --
--- 一个动作承担两种用途：
---   1. 空手点击插着矛的月台 -> 取下武器
---   2. 手拿铥矿碎片点击插着矛的月台 -> 喂碎片修理
+-- 空手点击插着矛的月台 -> 取下武器。
+--
+-- 月台自身的"修理"交给本体逻辑：本体月台用「月岩（moonrocknugget）」
+-- 修理（repairable 组件 + repairer 组件 + ACTIONS.REPAIR），
+-- 本模组不再介入修理，避免与本体月岩修理冲突。
 --
 -- 动作 ID 沿用历史上的 WIGFRIDARMOR_MOONREPAIR 命名，
 -- 避免已经发布的版本在存档 / 客户端缓存中失效。
@@ -61,7 +63,7 @@ function MoonActions.Register()
 	STRINGS.ACTIONS[ACTION_ID] = "使用"
 	STRINGS.ACTIONS[ACTION_ID .. "_GENERIC"] = "使用"
 
-	-- SCENE 类型：空手取下 / 手拿碎片喂
+	-- SCENE 类型：空手取下
 	AddComponentAction("SCENE", "inspectable", function(inst, doer, actions, right)
 		if right or doer == nil or doer.replica == nil or doer.replica.inventory == nil then
 			return

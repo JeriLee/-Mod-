@@ -1,4 +1,4 @@
--- 月台仪式 · 武器的插入 / 取出 / 弹出 / 喂碎片
+-- 月台仪式 · 武器的插入 / 取出 / 弹出
 --
 -- 数据模型：
 --   月台用一组成员字段记录"插着什么矛"：
@@ -7,6 +7,7 @@
 --     _thunderspear_skin     皮肤名
 --     _thunderspear_skinid   皮肤 id
 --     _thunderspear_ismoon   是否已月淬
+--     _thunderspear_isancient 是否已古铸
 --     _thunderspear_charges  已完成的充能次数
 --     _thunderspear_charging 是否正在充能
 --   同时 _staffinst 持有一个真实武器实体（AddChild + RemoveFromScene），
@@ -21,6 +22,8 @@ local FxStar = require("moonbase_ritual/fx_star")
 local FxSymbol = require("moonbase_ritual/fx_symbol")
 local FxCharge = require("moonbase_ritual/fx_charge")
 local Moonforged = require("moonbase_ritual/moonforged")
+local Ancientcast = require("ancient_cast/ancientcast")
+local AncientConfig = require("ancient_cast/config")
 
 local SpawnPrefab = G.Lazy("SpawnPrefab")
 
@@ -41,7 +44,7 @@ end
 --------------------------------------------------------------------------
 -- 内部：把月台上的代理实体取下来（返回真实武器实体）
 --------------------------------------------------------------------------
-local function DetachProxy(inst, uses, was_moon)
+local function DetachProxy(inst, uses, was_moon, was_ancient)
 	if inst._staffinst ~= nil and inst._staffinst:IsValid() then
 		inst:RemoveChild(inst._staffinst)
 		inst._staffinst:ReturnToScene()
@@ -51,9 +54,12 @@ local function DetachProxy(inst, uses, was_moon)
 		local result = inst._staffinst
 		inst._staffinst = nil
 
-		-- 取回时再确认一次月淬状态（幂等，可重复调用）
+		-- 取回时再确认一次月淬 / 古铸状态（幂等，可重复调用）
 		if was_moon then
 			Moonforged.Apply(result)
+		end
+		if was_ancient then
+			Ancientcast.Apply(result)
 		end
 		return result
 	end
@@ -70,6 +76,9 @@ local function DetachProxy(inst, uses, was_moon)
 		if was_moon then
 			Moonforged.Apply(result)
 		end
+		if was_ancient then
+			Ancientcast.Apply(result)
+		end
 	end
 	return result
 end
@@ -83,6 +92,7 @@ local function ClearState(inst)
 	inst._thunderspear_skin = nil
 	inst._thunderspear_skinid = nil
 	inst._thunderspear_ismoon = nil
+	inst._thunderspear_isancient = nil
 	inst._thunderspear_charges = 0
 	inst._staffuse = nil
 end
@@ -118,6 +128,7 @@ function MoonIO.Insert(inst, item)
 	inst._thunderspear_skin = skinname
 	inst._thunderspear_skinid = skinid
 	inst._thunderspear_ismoon = item:HasTag(Config.MOON_TAG)
+	inst._thunderspear_isancient = item:HasTag(AncientConfig.ANCIENT_TAG)
 	inst._thunderspear_charges = 0
 	inst._thunderspear_charging = nil
 
@@ -160,10 +171,11 @@ function MoonIO.TakeOut(inst)
 
 	local uses = inst._thunderspear_uses or 1
 	local was_moon = inst._thunderspear_ismoon
+	local was_ancient = inst._thunderspear_isancient
 
 	StopCharge(inst)
 
-	local result = DetachProxy(inst, uses, was_moon)
+	local result = DetachProxy(inst, uses, was_moon, was_ancient)
 
 	ClearState(inst)
 	FxSymbol.Clear(inst)
@@ -183,10 +195,11 @@ function MoonIO.Expel(inst)
 
 	local uses = inst._thunderspear_uses or 1
 	local was_moon = inst._thunderspear_ismoon
+	local was_ancient = inst._thunderspear_isancient
 
 	StopCharge(inst)
 
-	local result = DetachProxy(inst, uses, was_moon)
+	local result = DetachProxy(inst, uses, was_moon, was_ancient)
 
 	ClearState(inst)
 	FxSymbol.Clear(inst)

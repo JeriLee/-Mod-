@@ -59,16 +59,4 @@ configuration_options =
         },
         default = 12,
     },
-    {
-        name = "ThunderSpear_RepairHP",
-        label = "碎片修补月台量",
-        hover = "奔雷矛插在月台上时，每喂 1 个铥矿碎片，月台的损坏值修补多少。月台完整损坏值为 4。",
-        options =
-        {
-            {description = "1（少量）", data = 1},
-            {description = "2（中等）", data = 2},
-            {description = "4（一次修满）", data = 4},
-        },
-        default = 2,
-    },
 }

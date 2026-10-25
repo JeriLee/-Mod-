@@ -15,6 +15,7 @@ local FxStar = require("moonbase_ritual/fx_star")
 local FxSymbol = require("moonbase_ritual/fx_symbol")
 local FxCharge = require("moonbase_ritual/fx_charge")
 local Moonforged = require("moonbase_ritual/moonforged")
+local Ancientcast = require("ancient_cast/ancientcast")
 
 local TheWorld = G.Lazy("TheWorld")
 local SpawnPrefab = G.Lazy("SpawnPrefab")
@@ -106,6 +107,11 @@ local function FinishMoonforge(i)
 		-- 打上月淬标签，增伤 / 夜修都以此为开关
 		proxy:AddTag(Config.MOON_TAG)
 		Moonforged.Apply(proxy)
+
+		-- 古铸状态也要跟着形态一起保留（插进来时若已古铸）
+		if i._thunderspear_isancient then
+			Ancientcast.Apply(proxy)
+		end
 	end
 
 	-- 更新月台上显示的贴图
@@ -179,6 +185,7 @@ local function SetupSaveLoad(inst)
 			data.thunderspear_skin = i._thunderspear_skin
 			data.thunderspear_skinid = i._thunderspear_skinid
 			data.thunderspear_ismoon = i._thunderspear_ismoon
+			data.thunderspear_isancient = i._thunderspear_isancient
 			data.thunderspear_charges = i._thunderspear_charges
 		end
 	end
@@ -199,6 +206,7 @@ local function SetupSaveLoad(inst)
 		i._thunderspear_skin = Util.MatchSkin(i._thunderspear, data.thunderspear_skin)
 		i._thunderspear_skinid = data.thunderspear_skinid
 		i._thunderspear_ismoon = data.thunderspear_ismoon
+		i._thunderspear_isancient = data.thunderspear_isancient
 		i._thunderspear_charges = data.thunderspear_charges or 0
 
 		i:DoTaskInTime(0, function(ii)
@@ -215,6 +223,9 @@ local function SetupSaveLoad(inst)
 				if ii._thunderspear_ismoon then
 					proxy:AddTag(Config.MOON_TAG)
 					Moonforged.Apply(proxy)
+				end
+				if ii._thunderspear_isancient then
+					Ancientcast.Apply(proxy)
 				end
 				ii:AddChild(proxy)
 				proxy.Transform:SetPosition(0, 0, 0)
