@@ -169,6 +169,11 @@ end
 --
 -- 注意：这里刻意不碰玩家本人 —— 机器人那套个人属性提升
 -- （回血 / 掉理智 / 模块充能）对女武神不适用。
+--
+-- 但"电击僵直"要补上：本体里 WX-78（机器人）是 SELF 充能，
+-- 自己会被 electrocute 僵直一下；奔雷矛是 invobject 充能，
+-- 充电的是武器、玩家本人不会自动被电。所以这里主动把持矛的
+-- 玩家电一下，让"女武神触摸带电避雷针"和机器人表现一致。
 --------------------------------------------------------------------------
 local function OnBatteryUsed(inst, battery)
 	-- 只强化武器本身
@@ -176,6 +181,23 @@ local function OnBatteryUsed(inst, battery)
 
 	-- 与本体夜之棒一样，充能成功时给点电火花
 	SpawnElectricHitSparks(inst, battery, true)
+
+	-- 玩家手直接接触带电的避雷针 -> 被电击僵直（参考 WX-78）
+	local owner = inst.components.inventoryitem ~= nil
+		and inst.components.inventoryitem:GetGrandOwner() or nil
+	if owner ~= nil and owner:IsValid() and owner:HasTag("player") then
+		-- 延迟一点点再电：CHARGE_FROM 动作本身会播 catchonfire 动画，
+		-- 若此刻立即推 electrocute 会被它盖掉而看不到僵直。
+		-- 延后一帧（0.1s），让 electrocute 状态盖过 catchonfire，
+		-- 玩家才会真正被电得僵直一下（与机器人被雷劈打断动作同理）。
+		owner:DoTaskInTime(0.1, function(o)
+			if o:IsValid() then
+				-- noresist=true：与机器人一致，始终会被电（不豁免绝缘/潮湿）
+				o:PushEventImmediate("electrocute",
+					{ stimuli = "electric", noresist = true })
+			end
+		end)
+	end
 
 	return true
 end
