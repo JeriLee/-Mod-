@@ -13,7 +13,6 @@
 -- 引擎接口必须显式从 GLOBAL 取（见 genv.lua）。
 
 local G = require("shared/genv")
-local Config = require("moonbase_ritual/config")
 local Util = require("moonbase_ritual/util")
 local MoonIO = require("moonbase_ritual/moonbase_io")
 
@@ -49,11 +48,8 @@ function MoonActions.Register()
 				doer.components.inventory:GiveItem(item, nil, target:GetPosition())
 				return true
 			end
-			return false
 		end
-
-		-- 喂碎片
-		return MoonIO.Feed(target, doer)
+		return false
 	end)
 
 	ACT.mount_valid = true
@@ -78,15 +74,6 @@ function MoonActions.Register()
 		if has_spear then
 			table.insert(actions, ACTIONS[ACTION_ID])
 			return
-		end
-
-		-- 背包里有碎片 -> 可喂
-		for i = 1, doer.replica.inventory:GetNumSlots() do
-			local it = doer.replica.inventory:GetItemInSlot(i)
-			if it ~= nil and it.prefab == Config.REPAIR_MATERIAL then
-				table.insert(actions, ACTIONS[ACTION_ID])
-				return
-			end
 		end
 	end)
 

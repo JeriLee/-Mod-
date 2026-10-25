@@ -8,6 +8,7 @@ local G = require("shared/genv")
 local Util = require("moonbase_ritual/util")
 local MoonIO = require("moonbase_ritual/moonbase_io")
 local MoonAnim = require("moonbase_ritual/moonbase_anim")
+local MoonRepair = require("moonbase_ritual/moonbase_repair")
 
 local TheWorld = G.Lazy("TheWorld")
 local net_bool = G.Get("net_bool")
@@ -83,7 +84,11 @@ local function HookWorkable(inst)
 			end
 			MoonIO.Expel(i)
 		else
-			-- 未碎裂，播放对应损坏程度的碎裂动画
+			-- 未完全碎裂：维护 repairable 组件（月岩修理入口），再播碎裂动画。
+			-- 不能直接调 oldOnWork（UpdateWorkState），因为它内部的 ToggleMoonCharge
+			-- 会无条件 StopTimer("mooncharge")，停掉模组自定义充能。
+			-- 这里只补上"确保 repairable 组件存在"这一环，保证月岩右键能修月台。
+			MoonRepair.EnsureRepairable(i)
 			MoonAnim.PlayHit(i)
 		end
 	end)

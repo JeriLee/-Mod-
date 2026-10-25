@@ -65,6 +65,7 @@ require("shared/genv").Init(GLOBAL, {
 	MOUSEBUTTON_LEFT           = MOUSEBUTTON_LEFT,
 	RESOLUTION_X               = RESOLUTION_X,
 	RESOLUTION_Y               = RESOLUTION_Y,
+	MATERIALS                  = MATERIALS,
 })
 
 require("moonbase_ritual/init").Setup()

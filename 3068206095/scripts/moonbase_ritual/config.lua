@@ -21,8 +21,6 @@ Config.SPEAR = Shared.SPEAR
 Config.SPEAR_CHARGED = Shared.SPEAR_CHARGED
 Config.SPEAR_SKINS = Shared.SPEAR_SKINS
 
-Config.REPAIR_MATERIAL = "thulecite_pieces"
-
 -- 月淬标记标签：带此标签的奔雷矛 = 已被月光淬炼过
 Config.MOON_TAG = "moon"
 
@@ -86,6 +84,5 @@ end
 Config.ENABLE = GetCfg("ThunderSpear_Enable", true)
 Config.CHARGES = GetCfg("ThunderSpear_Charges", 1)
 Config.NIGHT_HOURS = GetCfg("ThunderSpear_NightHours", 12)
-Config.REPAIR_HP = GetCfg("ThunderSpear_RepairHP", 2)
 
 return Config

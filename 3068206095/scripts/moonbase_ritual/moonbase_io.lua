@@ -24,6 +24,7 @@ local FxCharge = require("moonbase_ritual/fx_charge")
 local Moonforged = require("moonbase_ritual/moonforged")
 local Ancientcast = require("ancient_cast/ancientcast")
 local AncientConfig = require("ancient_cast/config")
+local MoonRepair = require("moonbase_ritual/moonbase_repair")
 
 local SpawnPrefab = G.Lazy("SpawnPrefab")
 
@@ -132,6 +133,18 @@ function MoonIO.Insert(inst, item)
 	inst._thunderspear_charges = 0
 	inst._thunderspear_charging = nil
 
+	-- 确保 repairable 组件就绪：插着矛期间月台受损时，月岩也能修理。
+	-- 月台"完好"时 workrepairable 标签为 false，不会误显示"修理"；
+	-- 受损后 workrepairable 自动变 true，月岩右键即可出现"修理"按钮。
+	MoonRepair.EnsureRepairable(inst)
+
+	-- 禁用 trader：插矛后不能再"给予"，否则玩家手持月岩点月台时会
+	-- 走 GIVE（给予）动作而非 REPAIR（修理），角色会说"惹怒诸神"。
+	-- 与本体 OnStaffGiven 里 trader:Disable() 的做法一致。
+	if inst.components.trader ~= nil then
+		inst.components.trader:Disable()
+	end
+
 	-- 生成一个真实武器实体挂到月台上（复用 _staffinst 字段）
 	local proxy = SpawnPrefab(item.prefab, skinname, skinid)
 	if proxy ~= nil then
@@ -182,6 +195,16 @@ function MoonIO.TakeOut(inst)
 	inst.SoundEmitter:PlaySound("dontstarve/common/together/moonbase/moonstaff_place")
 	SyncNet(inst, false)
 
+	-- 摘矛后：若月台已受损，确保 repairable 组件就绪，月岩右键能出现"修理"
+	if not Util.MoonIsFixed(inst) then
+		MoonRepair.EnsureRepairable(inst)
+	end
+
+	-- 重新启用 trader（月台完好时才能再插矛），与本体 OnStaffTaken 一致
+	if Util.MoonIsFixed(inst) and inst.components.trader ~= nil then
+		inst.components.trader:Enable()
+	end
+
 	return result
 end
 
@@ -205,59 +228,22 @@ function MoonIO.Expel(inst)
 	FxSymbol.Clear(inst)
 	SyncNet(inst, false)
 
+	-- 弹出后：若月台已受损，确保 repairable 组件就绪
+	if not Util.MoonIsFixed(inst) then
+		MoonRepair.EnsureRepairable(inst)
+	end
+
+	-- 重新启用 trader（月台完好时才能再插矛）
+	if Util.MoonIsFixed(inst) and inst.components.trader ~= nil then
+		inst.components.trader:Enable()
+	end
+
 	if result ~= nil then
 		if inst.components.lootdropper == nil then
 			inst:AddComponent("lootdropper")
 		end
 		inst.components.lootdropper:FlingItem(result)
 	end
-end
-
---------------------------------------------------------------------------
--- 喂铥矿碎片：同时修武器耐久与月台损坏值
---------------------------------------------------------------------------
-function MoonIO.Feed(inst, doer)
-	if not Util.MoonHasSpear(inst) or Util.MoonIsFixed(inst) then
-		return false
-	end
-	if doer == nil or not doer:IsValid() or doer.components.inventory == nil then
-		return false
-	end
-
-	local item = doer.components.inventory:FindItem(function(o)
-		return o ~= nil and o.prefab == Config.REPAIR_MATERIAL
-	end)
-	if item == nil then
-		return false
-	end
-
-	if item.components.stackable ~= nil and item.components.stackable:IsStack() then
-		item.components.stackable:Get(1):Remove()
-	else
-		item:Remove()
-	end
-
-	-- 补武器耐久 25%
-	if inst._thunderspear_uses ~= nil then
-		inst._thunderspear_uses = math.min(1, inst._thunderspear_uses + 0.25)
-		if inst._staffinst ~= nil and inst._staffinst:IsValid()
-			and inst._staffinst.components.finiteuses ~= nil then
-			inst._staffinst.components.finiteuses:SetPercent(inst._thunderspear_uses)
-		end
-	end
-
-	-- 补月台损坏值
-	local w = inst.components.workable
-	if w ~= nil then
-		w:SetWorkLeft(math.min(w.maxwork or 0, (w.workleft or 0) + Config.REPAIR_HP))
-		if Util.MoonIsFixed(inst) and inst.components.trader ~= nil then
-			inst.components.trader:Enable()
-		end
-	end
-
-	inst.SoundEmitter:PlaySound("dontstarve/common/together/moonbase/repair")
-
-	return true
 end
 
 return MoonIO
