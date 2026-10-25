@@ -68,19 +68,33 @@ local function FinishMoonforge(i)
 	local uses = i._thunderspear_uses or 1
 
 	i._thunderspear_charges = 0
-	-- 原矛若是充能矛，月淬后统一还原成普通奔雷矛 + moon 标签
-	i._thunderspear = Config.SPEAR
+	-- 保留插入时的形态：普通矛进来还是普通矛，充能矛进来还是充能矛。
+	-- （早期版本在这里强制换成普通奔雷矛，会把玩家的充能矛静默降级：
+	--   耐久 200->150、冲刺冷却 3s->1.5s、移速 x1.2->x1.0，还失去冲刺回耐久）
+	-- 皮肤名必须与 prefab 配套：充能形态的皮肤会调用只有充能形态才有的
+	-- SetFxOwner，用普通形态的 prefab 套上去会在初始化时直接崩溃。
+	i._thunderspear_skin = Util.MatchSkin(i._thunderspear, i._thunderspear_skin)
 	i._thunderspear_ismoon = true
+
+	-- 记下旧矛的充能能量，避免仪式完成后能量被清零
+	local chargepercent = nil
+	if i._staffinst ~= nil and i._staffinst:IsValid()
+		and i._staffinst.components.rechargeable ~= nil then
+		chargepercent = i._staffinst.components.rechargeable:GetPercent()
+	end
 
 	if i._staffinst ~= nil and i._staffinst:IsValid() then
 		i:RemoveChild(i._staffinst)
 		i._staffinst:Remove()
 	end
 
-	local proxy = SpawnPrefab(Config.SPEAR, i._thunderspear_skin, i._thunderspear_skinid)
+	local proxy = SpawnPrefab(i._thunderspear, i._thunderspear_skin, i._thunderspear_skinid)
 	if proxy ~= nil then
 		if proxy.components.finiteuses ~= nil then
 			proxy.components.finiteuses:SetPercent(uses)
+		end
+		if chargepercent ~= nil and proxy.components.rechargeable ~= nil then
+			proxy.components.rechargeable:SetPercent(chargepercent)
 		end
 		-- 先挂到月台上并移出场景，再施加月淬效果
 		i:AddChild(proxy)
@@ -180,7 +194,9 @@ local function SetupSaveLoad(inst)
 
 		i._thunderspear = data.thunderspear
 		i._thunderspear_uses = data.thunderspear_uses or 1
-		i._thunderspear_skin = data.thunderspear_skin
+		-- 旧存档可能存过"普通 prefab + 充能皮肤"这种不匹配的组合，
+		-- 读档时必须把皮肤纠正回与 prefab 匹配的那个，否则会崩
+		i._thunderspear_skin = Util.MatchSkin(i._thunderspear, data.thunderspear_skin)
 		i._thunderspear_skinid = data.thunderspear_skinid
 		i._thunderspear_ismoon = data.thunderspear_ismoon
 		i._thunderspear_charges = data.thunderspear_charges or 0

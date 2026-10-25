@@ -8,9 +8,14 @@ Assets = {
 }
 
 -- 月淬状态用 "moon" 标签标记，不再单独做一个 prefab
-STRINGS.NAMES.SPEAR_MOONFORGED = "月淬奔雷矛"
+-- 名字见 scripts/moonbase_ritual/config.lua 的 Config.MOONFORGED_NAME
+STRINGS.NAMES.SPEAR_MOONFORGED = "月萃奔雷矛"
 STRINGS.RECIPE_DESC.SPEAR_MOONFORGED = "被月光淬炼过的奔雷矛，对暗影生物有额外伤害，夜里会缓慢恢复耐久"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.SPEAR_MOONFORGED = "月光淬炼的战矛。"
+
+STRINGS.NAMES.SPEAR_WATHGRITHR_LIGHTNING_CHARGED_MOONFORGED = "月萃充能奔雷矛"
+STRINGS.RECIPE_DESC.SPEAR_WATHGRITHR_LIGHTNING_CHARGED_MOONFORGED = "被月光淬炼过的充能奔雷矛，对暗影生物有额外伤害，夜里会缓慢恢复耐久"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.SPEAR_WATHGRITHR_LIGHTNING_CHARGED_MOONFORGED = "月光淬炼的充能战矛。"
 
 
 --------------------------------------------------------------------------

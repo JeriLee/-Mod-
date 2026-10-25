@@ -16,6 +16,7 @@ local Config = require("moonbase_ritual/config")
 
 local TheWorld = G.Lazy("TheWorld")
 local TUNING = G.Get("TUNING")
+local net_bool = G.Get("net_bool")
 
 local Moonforged = {}
 
@@ -49,6 +50,14 @@ function Moonforged.AddNightRepair(inst)
 	if inst.components.finiteuses == nil or Config.NIGHT_HOURS <= 0 then
 		return
 	end
+
+	-- 幂等：同一个实体只挂一次周期性任务。
+	-- 充能矛在 prefab 初始化时（SetupChargedSpear）已经挂过一次，
+	-- 月淬时再挂一次会变成双倍回耐久速度。
+	if inst._moonforged_nightrepair then
+		return
+	end
+	inst._moonforged_nightrepair = true
 
 	local total = inst.components.finiteuses.total
 	local seconds_per_use = (Config.NIGHT_HOURS * TUNING.SEG_TIME) / math.max(1, total)
@@ -86,6 +95,51 @@ function Moonforged.AddNightRepair(inst)
 end
 
 --------------------------------------------------------------------------
+-- 月淬后改名
+--
+-- 物品的显示名由 EntityScript:GetBasicDisplayName() 决定，优先级为：
+--     displaynamefn  >  nameoverride  >  name
+-- 奔雷矛没有设置实体级 nameoverride，所以挂在 displaynamefn 上最合适。
+--
+-- displaynamefn 可以在 prefab 初始化时挂上：AddPrefabPostInit 的回调
+-- 客户端和服务端都会执行，因此只要把"是否已月淬"同步到客户端，
+-- 两端显示出来的名字就一致。
+--
+-- 普通形态叫「月萃奔雷矛」，充能形态叫「月萃充能奔雷矛」。
+-- 这里按 prefab 名里是否带 "_charged" 来区分，
+-- 这样即使带皮肤生成（prefab 名可能被写成皮肤名）也能正确判断。
+--
+-- 注意："moon" 标签既不会同步到客户端，也不会随存档保存，
+-- 所以这里单独用一个 net_bool 作为客户端可见的标记。
+--------------------------------------------------------------------------
+local function GetMoonforgedName(prefab)
+	if prefab ~= nil and string.find(prefab, "_charged", 1, true) ~= nil then
+		return Config.MOONFORGED_CHARGED_NAME
+	end
+	return Config.MOONFORGED_NAME
+end
+
+function Moonforged.SetupName(inst)
+	-- net 变量必须在客户端和服务端都创建，且名字一致
+	if inst._moonforged_net == nil then
+		inst._moonforged_net = net_bool(inst.GUID, "spear.moonforged",
+			"thunderspearmoonforgeddirty")
+	end
+
+	-- 避免重复挂载（比如同一 prefab 被多次 post init）
+	if inst._moonforged_namefn == nil then
+		inst._moonforged_namefn = true
+		local oldfn = inst.displaynamefn
+		inst.displaynamefn = function(i)
+			if i._moonforged_net ~= nil and i._moonforged_net:value() then
+				return GetMoonforgedName(i.prefab)
+			end
+			return oldfn ~= nil and oldfn(i) or nil
+		end
+	end
+end
+
+--------------------------------------------------------------------------
 -- 施加全部月淬效果（幂等）
 --------------------------------------------------------------------------
 function Moonforged.Apply(inst)
@@ -98,6 +152,14 @@ function Moonforged.Apply(inst)
 		inst:AddTag(Config.MOON_TAG)
 	end
 
+	-- 同步到客户端，让改名在两端都生效
+	if inst._moonforged_net == nil then
+		Moonforged.SetupName(inst)
+	end
+	if inst._moonforged_net ~= nil then
+		inst._moonforged_net:set(true)
+	end
+
 	-- 对暗影阵营增伤
 	-- AddBonus 同 src + 同 key 会覆盖，重复调用是安全的
 	local damagetypebonus = inst.components.damagetypebonus
@@ -107,11 +169,8 @@ function Moonforged.Apply(inst)
 	-- 解除装备限制
 	Moonforged.UnlockEquip(inst)
 
-	-- 夜晚回耐久：只挂一次周期性任务
-	if not inst._moonforged_nightrepair then
-		inst._moonforged_nightrepair = true
-		Moonforged.AddNightRepair(inst)
-	end
+	-- 夜晚回耐久：AddNightRepair 内部保证只挂一次
+	Moonforged.AddNightRepair(inst)
 end
 
 --------------------------------------------------------------------------
@@ -132,6 +191,12 @@ function Moonforged.SetupPersist(inst)
 	if not TheWorld.ismastersim then
 		return
 	end
+
+	-- 幂等：避免 OnSave / OnLoad 被重复包装
+	if inst._moonforged_persist then
+		return
+	end
+	inst._moonforged_persist = true
 
 	local oldOnSave = inst.OnSave
 	inst.OnSave = function(i, data)

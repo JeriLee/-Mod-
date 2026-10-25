@@ -36,8 +36,10 @@ local MoonbaseRitual = {}
 -- 给奔雷矛（含各皮肤）和充能矛挂上能力
 --------------------------------------------------------------------------
 local function SetupSpearPrefabs()
-	-- 普通奔雷矛（含皮肤）：可拖到月台 + moon 标签持久化
+	-- 普通奔雷矛（含皮肤）：可拖到月台 + moon 标签持久化 + 月淬改名
 	local function SetupNormalSpear(inst)
+		-- 先挂 net 变量与改名逻辑（客户端服务端都要执行）
+		Moonforged.SetupName(inst)
 		Moonforged.MakeTradable(inst)
 		Moonforged.SetupPersist(inst)
 	end
@@ -47,10 +49,15 @@ local function SetupSpearPrefabs()
 		AddPrefabPostInit(Config.SPEAR .. "_" .. skin, SetupNormalSpear)
 	end
 
-	-- 充能矛（含皮肤）：可拖到月台 + 解锁装备 + 夜修
+	-- 充能矛（含皮肤）：可拖到月台 + 解锁装备 + 夜修 + moon 标签持久化 + 月淬改名
 	local function SetupCharged(inst)
+		-- 先挂 net 变量与改名逻辑（客户端服务端都要执行）
+		Moonforged.SetupName(inst)
 		Moonforged.MakeTradable(inst)
 		Moonforged.SetupChargedSpear(inst)
+		-- 必须也要持久化：否则读档后 moon 标签丢失，
+		-- Apply 不会被调用，暗影增伤 / 夜修 / 改名 / 解锁 全部失效
+		Moonforged.SetupPersist(inst)
 	end
 
 	AddPrefabPostInit(Config.SPEAR_CHARGED, SetupCharged)

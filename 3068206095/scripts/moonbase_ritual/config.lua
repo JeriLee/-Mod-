@@ -23,6 +23,11 @@ Config.MOON_TAG = "moon"
 -- 月淬后对暗影阵营的增伤倍数（玻璃刀为 1.25，即 +25%）
 Config.SHADOW_DAMAGE_BONUS = 1.25
 
+-- 月淬后的显示名称
+-- 普通形态与充能形态分别对应不同的名字
+Config.MOONFORGED_NAME = "月萃奔雷矛"
+Config.MOONFORGED_CHARGED_NAME = "月萃充能奔雷矛"
+
 --------------------------------------------------------------------------
 -- 月台插矛显示用的 build / symbol
 -- 普通形态和充能形态公用一套 build 和 swap 符号

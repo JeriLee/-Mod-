@@ -59,7 +59,10 @@ local function DetachProxy(inst, uses, was_moon)
 	end
 
 	-- 兜底：没有代理实体时按记录重建一把
-	local result = SpawnPrefab(inst._thunderspear, inst._thunderspear_skin, inst._thunderspear_skinid)
+	-- 皮肤名要跟 prefab 保持一致，否则（充能皮肤套普通 prefab）初始化会崩
+	local result = SpawnPrefab(inst._thunderspear,
+		Util.MatchSkin(inst._thunderspear, inst._thunderspear_skin),
+		inst._thunderspear_skinid)
 	if result ~= nil then
 		if result.components.finiteuses ~= nil then
 			result.components.finiteuses:SetPercent(uses)
