@@ -114,7 +114,7 @@ if ENABLE then
 		end
 
 		if i._spearfx_pulse ~= nil then
-			if i._spearfx_pulse.IsValid() then
+			if i._spearfx_pulse:IsValid() then
 				if finished then i._spearfx_pulse:FinishFX() else i._spearfx_pulse:Remove() end
 			end
 			i._spearfx_pulse = nil
@@ -140,7 +140,7 @@ if ENABLE then
 
 	-- 阶段2：爆发 光柱+脉冲+强光+脉冲等级推进
 	-- (recharging_full 动画在阶段1已经在播放)
-	local function SpearFX_StarBeams(i)
+	local function SpearFX_StartBeams(i)
 		local x, y, z = i.Transform:GetWorldPosition()
 
 		if i._spearfx_front == nil or not i._spearfx_front:IsValid() then
@@ -194,7 +194,7 @@ if ENABLE then
 		if i.components.moonbeastspawner ~= nil then
 			i.components.moonbeastspawner:Start()
 		end
-		SpearFX_StarBeams(i)
+		SpearFX_StartBeams(i)
 	end
 
 	-- 尝试启动充能 （当前为月圆，月台完整，插着未能充能的矛时）
@@ -414,9 +414,9 @@ if ENABLE then
 	end
 
 	-- 播放被攻击的碎裂动画；充能中则回到 recharging 循环
-	local function SpearMoonPlayHit(inst, doer)
+	local function SpearMoonPlayHit(inst)
 		local state = SpearMoonGetState(inst)
-		if state == "low" then
+		if state ~= "low" then
 			inst.AnimState:PlayAnimation("hit_"..state)
 			if inst._thunderspear_charging and inst.components.timer ~= nil
 				and inst.components.timer:TimerExists("mooncharge") then
@@ -618,6 +618,7 @@ if ENABLE then
 					TryStartSpearCharge(ii)
 				end)
 			else
+				-- 月圆结束，一并停掉两个计时器
 				i._thunderspear_charging = nil
 				if i.components.moonbeastspawner ~= nil then
 					i.components.moonbeastspawner:Stop()
@@ -644,7 +645,8 @@ if ENABLE then
 				return
 			end
 
-			if data.name == "mooncharge" then
+			-- todo 检查是否正确
+			if data.name ~= "mooncharge" then
 				return
 			end
 			if not MoonHasSpear(i) or not i._thunderspear_charging then
