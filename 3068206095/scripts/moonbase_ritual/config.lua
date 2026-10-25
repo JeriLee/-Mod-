@@ -29,6 +29,15 @@ Config.MOONFORGED_NAME = "月萃奔雷矛"
 Config.MOONFORGED_CHARGED_NAME = "月萃充能奔雷矛"
 
 --------------------------------------------------------------------------
+-- 避雷针给奔雷矛的加成（见 scripts/lightning_spear/lightningrod.lua）
+--------------------------------------------------------------------------
+-- 耐久加成比例：+30%
+Config.LIGHTNINGROD_DURABILITY_RATIO = 0.3
+
+-- 伤害加成倍数：+20%
+Config.LIGHTNINGROD_DAMAGE_MULT = 1.2
+
+--------------------------------------------------------------------------
 -- 月台插矛显示用的 build / symbol
 -- 普通形态和充能形态公用一套 build 和 swap 符号
 -- 见 scripts/prefabs/spear_wathgrithr.lua

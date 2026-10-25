@@ -41,5 +41,15 @@ require("moonbase_ritual/genv").Init(GLOBAL, {
 	ACTIONS                    = ACTIONS,
 	STRINGS                    = STRINGS,
 	FindEntity                 = FindEntity,
+	SpawnElectricHitSparks     = SpawnElectricHitSparks,
 })
 require("moonbase_ritual/init").Setup()
+
+--------------------------------------------------------------------------
+-- 奔雷矛 · 避雷针充能
+-- 手持普通奔雷矛右键带电避雷针，参考机器人（WX-78）的充能流程：
+-- 同样的动作与动画，但不给玩家个人属性提升，改为强化武器本身
+-- （耐久 +30%、伤害 +20%，持续一天）。
+-- 实现见 scripts/lightning_spear/lightningrod.lua
+--------------------------------------------------------------------------
+require("lightning_spear/lightningrod").Setup()
