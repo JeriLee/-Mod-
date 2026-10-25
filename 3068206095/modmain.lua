@@ -76,6 +76,29 @@ if ENABLE then
 		return inst._thunderspear ~= nil
 	end
 
+	-- 升级完成后月台上的光球特效（对应原版 moonbase 的 ShowColdStar / HideColdStar）
+	local function ShowSpearStar(i)
+		if i._spearstar == nil then
+			i._spearstar = SpawnPrefab("staffcoldlightfx")
+			if i._spearstar ~= nil then
+				i._spearstar.entity:SetParent(i.entity)
+				if i.Light:IsEnabled() then
+					i.AnimState:SetBloomEffectHandle("shaders/anim.ksh")
+				end
+			end
+		end
+	end
+
+	local function HideSpearStar(i)
+		if i._spearstar ~= nil then
+			i._spearstar:Remove()
+			i._spearstar = nil
+			if not i.Light:IsEnabled() then
+				i.AnimState:ClearBloomEffectHandle()
+			end
+		end
+	end
+
 	-- 根据月台上代理实体(_staffinst)的皮肤,覆盖 swap_staffs 槽位的贴图
 	--  - 有皮肤：用OverrideItemSkinSymbol (皮肤 build + BUILD，默认build兜底)
 	--  - 无皮肤：用OverrideSymbol(默认 build)
@@ -307,6 +330,7 @@ if ENABLE then
 			inst.components.moonbeastspawner:Stop()
 		end
 		SpearFX_Stop(inst, false)
+		HideSpearStar(inst)
 
 		-- 取出代理实体
 		local result = nil
@@ -360,6 +384,7 @@ if ENABLE then
 			inst.components.moonbeastspawner:Stop()
 		end
 		SpearFX_Stop(inst, false)
+		HideSpearStar(inst)
 
 		-- 取出代理实体
 		local result = nil
@@ -554,6 +579,11 @@ if ENABLE then
 			return
 		end
 
+		-- 月台被移除/摧毁时清理光球
+		inst:ListenForEvent("onremove", function(i)
+			HideSpearStar(i)
+		end)
+
 		-- 让月台也接受奔雷矛
 		if inst.components.trader ~= nil then
 			local oldAbleToAccept = inst.components.trader.abletoaccepttest
@@ -696,8 +726,9 @@ if ENABLE then
 				i.components.moonbeastspawner:Stop()
 			end
 
-			-- 仪式完成
+			-- 仪式完成：显示升级完成光球
 			SpearFX_Stop(i, true)
+			ShowSpearStar(i)
 		end)
 
 		-- 存档
@@ -746,6 +777,11 @@ if ENABLE then
 					ApplySpearSymbol(ii)
 					if ii._thunderspear_net ~= nil then
 						ii._thunderspear_net:set(true)
+					end
+
+					-- 读档：若已是充能形态，恢复升级完成光球
+					if ii._thunderspear == SPEAR_CHARGED then
+						ShowSpearStar(ii)
 					end
 
 					-- 读档如果是月圆，则恢复充能和特效
