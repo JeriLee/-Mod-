@@ -3,12 +3,16 @@ GLOBAL.setmetatable(env,{__index=function(t,k) return GLOBAL.rawget(GLOBAL,k) en
 
 PrefabFiles = {
 	"wigfridarmor",
+	"moonforged_spear",
 }
 
 Assets = {
 }
 
 STRINGS.NAMES.WIGFRIDARMOR = "女武神战甲"
+STRINGS.NAMES.MOONFORGED_SPEAR = "月淬奔雷矛"
+STRINGS.RECIPE_DESC.MOONFORGED_SPEAR = "被月光淬炼过的奔雷矛，对暗影生物有额外伤害，夜里会缓慢恢复耐久"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MOONFORGED_SPEAR = "月光淬炼的战矛。"
 STRINGS.RECIPE_DESC.WIGFRIDARMOR = "女武神要有像样的战甲，我看石头和金子就很合适嘛"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.WIGFRIDARMOR = "他很适合女武神."
 
@@ -26,7 +30,11 @@ nil, nil, nil, nil, "valkyrie",
 
 local SPEAR = "spear_wathgrithr_lightning"
 local SPEAR_CHARGED = "spear_wathgrithr_lightning_charged"
+local MOONFORGED_SPEAR = "moonforged_spear"
 local REPAIR_MATERIAL = "thulecite_pieces"
+
+-- 月淬奔雷矛固定使用的 lunar 皮肤 build（与 moonforged_spear.lua 中一致）
+local MOONFORGED_SKIN = "spear_wathgrithr_lightning_lunar"
 
 -- 奔雷矛在月台上显示用的 build 符号
 -- （普通形态和充能形态公用一套build 和 swap 符号） 见 scripts/prefabs/spear_wathgrithr.lua
@@ -105,6 +113,13 @@ if ENABLE then
 	-- 参考 scripts/perfabs/spear_wathgrithr.lua 的 OnEquip 写法
 	local function ApplySpearSymbol(inst)
 		local proxy = inst._staffinst
+
+		-- 月淬奔雷矛：固定 lunar 皮肤外观
+		if proxy ~= nil and proxy:IsValid() and proxy.prefab == MOONFORGED_SPEAR then
+			inst.AnimState:OverrideItemSkinSymbol("swap_staffs", MOONFORGED_SKIN, SPEAR_SWAP_SYMBOL, proxy.GUID, SPEAR_SWAP_BUILD)
+			return
+		end
+
 		local skin_build = nil
 		if proxy ~= nil and proxy:IsValid() and proxy.GetSkinBuild ~= nil then
 			skin_build = proxy:GetSkinBuild()
@@ -242,8 +257,8 @@ if ENABLE then
 			return
 		end
 
-		-- 已经是充能形态则无需再充能
-		if i._thunderspear == SPEAR_CHARGED then
+		-- 已经是月淬形态则无需再充能
+		if i._thunderspear == MOONFORGED_SPEAR then
 			return
 		end
 
@@ -346,6 +361,10 @@ if ENABLE then
 			local spear = inst._thunderspear
 			local skinname = inst._thunderspear_skin
 			local skinid = inst._thunderspear_skinid
+			-- 月淬矛固定 lunar 外观，不传皮肤参数
+			if spear == MOONFORGED_SPEAR then
+				skinname, skinid = nil, nil
+			end
 			result = SpawnPrefab(spear, skinname, skinid)
 			if result ~= nil and result.components.finiteuses ~= nil then
 				result.components.finiteuses:SetPercent(uses)
@@ -397,7 +416,13 @@ if ENABLE then
 			result = inst._staffinst
 			inst._staffinst = nil
 		else
-			result = SpawnPrefab(inst._thunderspear, inst._thunderspear_skin, inst._thunderspear_skinid)
+			-- 月淬矛固定 lunar 外观，不传皮肤参数
+			local skinname = inst._thunderspear_skin
+			local skinid = inst._thunderspear_skinid
+			if inst._thunderspear == MOONFORGED_SPEAR then
+				skinname, skinid = nil, nil
+			end
+			result = SpawnPrefab(inst._thunderspear, skinname, skinid)
 			if result ~= nil and result.components.finiteuses ~= nil then
 				result.components.finiteuses:SetPercent(uses)
 			end
@@ -694,19 +719,17 @@ if ENABLE then
 				return
 			end
 
-			-- 充满：换成充能版
+			-- 充满：换成月淬奔雷矛（固定 lunar 外观，不继承原皮肤）
 			local uses = i._thunderspear_uses or 1
-			local skinname = i._thunderspear_skin
-			local skinid = i._thunderspear_skinid
 
-			i._thunderspear = SPEAR_CHARGED
+			i._thunderspear = MOONFORGED_SPEAR
 			i._thunderspear_charges = 0
 
 			if i._staffinst ~= nil and i._staffinst:IsValid() then
 				i:RemoveChild(i._staffinst)
 				i._staffinst:Remove()
 			end
-			local proxy = SpawnPrefab(SPEAR_CHARGED, skinname, skinid)
+			local proxy = SpawnPrefab(MOONFORGED_SPEAR)
 			if proxy ~= nil then
 				if proxy.components.finiteuses ~= nil then
 					proxy.components.finiteuses:SetPercent(uses)
@@ -762,7 +785,13 @@ if ENABLE then
 					if not ii:IsValid() or not MoonHasSpear(ii) then
 						return
 					end
-					local proxy = SpawnPrefab(ii._thunderspear, ii._thunderspear_skin, ii._thunderspear_skinid)
+					-- 月淬矛固定 lunar 外观，不传皮肤参数
+					local skinname = ii._thunderspear_skin
+					local skinid = ii._thunderspear_skinid
+					if ii._thunderspear == MOONFORGED_SPEAR then
+						skinname, skinid = nil, nil
+					end
+					local proxy = SpawnPrefab(ii._thunderspear, skinname, skinid)
 					if proxy ~= nil then
 						if proxy.components.finiteuses ~= nil then
 							proxy.components.finiteuses:SetPercent(ii._thunderspear_uses or 1)
@@ -779,8 +808,8 @@ if ENABLE then
 						ii._thunderspear_net:set(true)
 					end
 
-					-- 读档：若已是充能形态，恢复升级完成光球
-					if ii._thunderspear == SPEAR_CHARGED then
+					-- 读档：若已是月淬形态，恢复升级完成光球
+					if ii._thunderspear == MOONFORGED_SPEAR then
 						ShowSpearStar(ii)
 					end
 
@@ -821,8 +850,8 @@ if ENABLE then
 				i._nightrepair_acc = 0
 				return
 			end
-			-- 插在月台上（成为子实体）不恢复
-			if i.parent ~= nil then
+			-- 插在月台上（父实体是月台）不恢复；拿在手上/背包里 parent 是玩家，正常恢复
+			if i.parent ~= nil and i.parent:HasTag("moonbase") then
 				return
 			end
 
@@ -880,6 +909,12 @@ if ENABLE then
 			SetupChargedSpear(inst)
 		end)
 	end
+
+	-- 月淬奔雷矛：复用充能矛的装备解锁 + 夜晚恢复耐久
+	AddPrefabPostInit(MOONFORGED_SPEAR, function (inst)
+		UnlockChargedSpear(inst)
+		AddNightRepair(inst)
+	end)
 
 	local BEAM_COLOURS = {
 		positronbeam_back  = SPEAR_BEAM_COLOUR_BACK,

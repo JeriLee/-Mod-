@@ -38,7 +38,13 @@ luac.out
 *.x86_64
 *.hex
 
-# DST game scripts (reference only)
-scripts/
+# DST game scripts (reference only) —— 仅忽略根目录的 scripts
+/scripts/
+more*/scripts/
+xu*/scripts/
+# 保留各模组文件夹下的 scripts（模组代码，需纳入版本管理）
+!3253411834/scripts/
+!3068206095/scripts/
+
 .vscode/
 client_log.txt
