@@ -39,6 +39,7 @@ luac.out
 *.hex
 
 # DST game scripts (reference only) —— 仅忽略根目录的 scripts
+# （仅从 git 忽略；VSCode 中仍会正常显示、可搜索，见 .vscode/settings.json）
 /scripts/
 more*/scripts/
 xu*/scripts/
