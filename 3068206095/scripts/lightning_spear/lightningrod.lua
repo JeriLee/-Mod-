@@ -226,11 +226,18 @@ local function SetupPersist(inst)
 
 	local oldOnSave = inst.OnSave
 	inst.OnSave = function(i, data)
-		local ret = oldOnSave ~= nil and oldOnSave(i, data) or data
-		if ret ~= nil and i._lightningrod_buff_time ~= nil and i._lightningrod_buff_time > 0 then
-			ret.lightningrod_buff = i._lightningrod_buff_time
+		-- 注意：EntityScript.OnSave 的返回值约定是 references（GUID 列表），
+		-- 不是数据表。数据必须原地写进传进来的 data。
+		-- 老包装若返回 data 本身，这里直接丢弃，避免污染 references。
+		data = data or {}
+		local refs = oldOnSave ~= nil and oldOnSave(i, data) or nil
+		if refs == data then
+			refs = nil
 		end
-		return ret
+		if i._lightningrod_buff_time ~= nil and i._lightningrod_buff_time > 0 then
+			data.lightningrod_buff = i._lightningrod_buff_time
+		end
+		return refs
 	end
 
 	local oldOnLoad = inst.OnLoad
@@ -265,15 +272,20 @@ local function SetupPlayerPersist(inst)
 
 	local oldOnSave = inst.OnSave
 	inst.OnSave = function(i, data)
-		local ret = oldOnSave ~= nil and oldOnSave(i, data) or data
+		-- 同上：返回值是 references，数据要原地写进 data
+		data = data or {}
+		local refs = oldOnSave ~= nil and oldOnSave(i, data) or nil
+		if refs == data then
+			refs = nil
+		end
 		local pc = i.player_classified
-		if ret ~= nil and pc ~= nil and pc._mod_lightningrod_posx ~= nil then
-			ret.modlightningrodpos = {
+		if pc ~= nil and pc._mod_lightningrod_posx ~= nil then
+			data.modlightningrodpos = {
 				x = pc._mod_lightningrod_posx:value(),
 				y = pc._mod_lightningrod_posy:value(),
 			}
 		end
-		return ret
+		return refs
 	end
 
 	local oldOnLoad = inst.OnLoad

@@ -30,6 +30,11 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.SPEAR_WATHGRITHR_LIGHTNING_CHARGED_ANCIENTCA
 -- 古铸失败时的提示（本体会用角色语音念出来）
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.NEEDTHULECITE = "古铸需要 5 个铥矿。"
 
+-- 绿宝石改造失败提示（每把奔雷矛只允许吸收一颗）
+STRINGS.CHARACTERS.GENERIC.ACTIONFAIL = STRINGS.CHARACTERS.GENERIC.ACTIONFAIL or {}
+STRINGS.CHARACTERS.GENERIC.ACTIONFAIL.USEITEMON = STRINGS.CHARACTERS.GENERIC.ACTIONFAIL.USEITEMON or {}
+STRINGS.CHARACTERS.GENERIC.ACTIONFAIL.USEITEMON.GREENGEM_ALREADY_USED = "这把武器已经吸收过绿宝石了。"
+STRINGS.CHARACTERS.GENERIC.ACTIONFAIL.USEITEMON.YELLOWGEM_ALREADY_USED = "这把武器已经吸收过黄宝石了。"
 
 --------------------------------------------------------------------------
 -- 奔雷矛 · 月台充能
@@ -66,6 +71,7 @@ require("shared/genv").Init(GLOBAL, {
 	RESOLUTION_X               = RESOLUTION_X,
 	RESOLUTION_Y               = RESOLUTION_Y,
 	MATERIALS                  = MATERIALS,
+	FRAMES                     = FRAMES,
 })
 
 require("moonbase_ritual/init").Setup()
@@ -95,3 +101,24 @@ require("lightning_spear/lightningrod").Setup()
 -- 并带定时重试，只要有一个能跑起来就会挂上。
 --------------------------------------------------------------------------
 require("lightning_spear/hud").Start()
+
+--------------------------------------------------------------------------
+-- 奔雷矛 · 绿宝石改造
+-- 手持绿宝石对「古铸的充能奔雷矛」使用：位面伤害 +30，持续一天
+-- 交互与状态都用标签表达，见 scripts/lightning_spear/greengem.lua
+--------------------------------------------------------------------------
+require("lightning_spear/greengem").Setup()
+
+--------------------------------------------------------------------------
+-- 奔雷矛 · 黄宝石改造
+-- 手持黄宝石对「古铸的充能奔雷矛」使用：冲刺伤害 ×2、冲刺电击僵直 2.4 秒
+-- 见 scripts/lightning_spear/yellowgem.lua
+--------------------------------------------------------------------------
+require("lightning_spear/yellowgem").Setup()
+
+--------------------------------------------------------------------------
+-- 奔雷矛 · Insight 悬浮描述
+-- 装了 Insight 时，在武器信息里补一行「绿宝石 剩余/上限」
+-- 未装 Insight 时自动跳过，见 scripts/lightning_spear/insight_desc.lua
+--------------------------------------------------------------------------
+require("lightning_spear/insight_desc").Setup()

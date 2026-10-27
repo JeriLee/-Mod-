@@ -187,12 +187,18 @@ function Moonforged.SetupPersist(inst)
 
 	local oldOnSave = inst.OnSave
 	inst.OnSave = function(i, data)
-		local ret = oldOnSave ~= nil and oldOnSave(i, data) or data
-		if i:HasTag(Config.MOON_TAG) then
-			ret = ret or {}
-			ret.moonforged = true
+		-- 注意：EntityScript.OnSave 的返回值约定是 references（GUID 列表），
+		-- 不是数据表。数据必须原地写进传进来的 data。
+		-- 老包装若返回 data 本身，这里直接丢弃，避免污染 references。
+		data = data or {}
+		local refs = oldOnSave ~= nil and oldOnSave(i, data) or nil
+		if refs == data then
+			refs = nil
 		end
-		return ret
+		if i:HasTag(Config.MOON_TAG) then
+			data.moonforged = true
+		end
+		return refs
 	end
 
 	local oldOnLoad = inst.OnLoad

@@ -92,10 +92,15 @@ function G.Many(...)
 	end
 end
 
--- 实时从 GLOBAL 取一个运行时全局（TheWorld / SpawnPrefab 等）
+-- 实时从 GLOBAL 取一个运行时全局（TheWorld / SpawnPrefab / 其他模组的全局等）
 -- 每次调用都会重新索引，保证拿到进入世界后的最新值。
+--
+-- 必须用 rawget：DST 的 _G 带 strict 元表（scripts/strict.lua），
+-- 读取「从未被赋值过」的全局会直接 error，而不是返回 nil。
+-- 而这里经常需要探测某个全局存在与否（例如别的模组有没有装），
+-- 所以绕开元表，取不到就返回 nil。
 function G.Global(name)
-	return EnsureGlobal()[name]
+	return rawget(EnsureGlobal(), name)
 end
 
 -- 懒解析代理：返回一个表，任何索引/调用都会实时从 GLOBAL 重新取值。
@@ -104,8 +109,9 @@ end
 --   local SpawnPrefab = G.Lazy("SpawnPrefab")
 --   if TheWorld.ismastersim then ... end   -- 实时取 GLOBAL.TheWorld.ismastersim
 --   SpawnPrefab("x")                        -- 实时取 GLOBAL.SpawnPrefab 并调用
+-- 同样用 rawget，避免在全局还不存在时报 strict 错误。
 local function resolve(name)
-	return EnsureGlobal()[name]
+	return rawget(EnsureGlobal(), name)
 end
 
 function G.Lazy(name)
