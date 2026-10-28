@@ -348,9 +348,11 @@ local OCEAN_STATIC_KEEP =
     ["OceanRough"] =
     {
         ["HermitcrabIsland"] = true,
+        ["OceanWhirlBigPortal"] = true,
+        -- 猴岛：默认由 PlaceMonkeyIslandNearShore 贴岸放置；万一挂不上钩子，
+        -- 这两个留着让原版逻辑照常放（远一点，但不会丢岛）
         ["MonkeyIsland"] = true,
         ["MonkeyIslandSmall"] = true,
-        ["OceanWhirlBigPortal"] = true,
     },
     ["OceanCoastal"] =
     {
@@ -371,6 +373,309 @@ local function TrimStaticLayouts(room, keep)
         if keep[name] == nil then
             layouts[name] = nil
         end
+    end
+end
+
+------------------------------------------------------------------------------------------
+-- 猴岛贴岸放置
+--   原版把猴岛交给 OceanRough 房间的随机布景：在地图上随便找一片「整片都是
+--   OCEAN_ROUGH」的方形区域。OCEAN_ROUGH 是离岸最远的深水带，落点又完全随机，
+--   所以猴岛常常孤零零飘在很远的海里。
+--   这里改成自己放：
+--     1) 用 BFS 算出每格到陆地的距离；
+--     2) 从离陆地最近的一层开始，找能塞下整个猴岛布局的方形空位；
+--     3) 实在找不到就回退到原版逻辑，保证不会因为找不到位置而丢岛。
+------------------------------------------------------------------------------------------
+
+local MONKEY_LAYOUT_LARGE = "MonkeyIsland"
+local MONKEY_LAYOUT_SMALL = "MonkeyIslandSmall"
+local LAND_DIST_LIMIT = 40
+local MONKEY_LAYER_LIMIT = 12   -- 只在离陆地 12 格以内找位置
+local MONKEY_ANCHORS_PER_LAYER = 24
+
+-- 原版 Ocean_PlaceSetPieces，兜底时用
+local ORIG_OCEAN_PLACE_SETPIECES = nil
+
+local function GetMonkeyLayoutSize(layout, prefabs)
+    local size = 2
+    if type(layout.ground) == "table" then
+        size = math.max(size, #layout.ground)
+    elseif type(prefabs) == "table" then
+        local xmin, ymin, xmax, ymax = 1e9, 1e9, -1e9, -1e9
+        for i = 1, #prefabs do
+            local p = prefabs[i]
+            if type(p) == "table" then
+                if type(p.x) == "number" then
+                    xmin = math.min(xmin, p.x)
+                    xmax = math.max(xmax, p.x)
+                end
+                if type(p.y) == "number" then
+                    ymin = math.min(ymin, p.y)
+                    ymax = math.max(ymax, p.y)
+                end
+            end
+        end
+        size = math.ceil((layout.scale or 1) * math.max(xmax - xmin, ymax - ymin))
+    end
+    return math.max(2, size)
+end
+
+-- 到陆地的曼哈顿距离场：陆地 0，海洋 >0，IMPASSABLE 与超出范围的是 -1
+local function BuildLandDistanceField(world, width, height)
+    local dist = {}
+    local queue = {}
+    local tail = 0
+
+    local is_land_tile = rawget(GLOBAL, "IsLandTile")
+    local world_tiles = rawget(GLOBAL, "WORLD_TILES") or WORLD_TILES
+    local impassable = world_tiles and world_tiles.IMPASSABLE
+
+    for y = 0, height - 1 do
+        local row = {}
+        dist[y] = row
+        for x = 0, width - 1 do
+            local tile = world:GetTile(x, y)
+            if type(tile) == "number" and type(is_land_tile) == "function" and is_land_tile(tile) then
+                row[x] = 0
+                tail = tail + 1
+                queue[tail] = y * width + x
+            elseif impassable ~= nil and tile == impassable then
+                row[x] = -1
+            else
+                row[x] = LAND_DIST_LIMIT + 1
+            end
+        end
+    end
+
+    local head = 1
+    while head <= tail do
+        local idx = queue[head]
+        head = head + 1
+        local x = idx % width
+        local y = (idx - x) / width
+        local d = dist[y][x]
+        if d >= 0 and d < LAND_DIST_LIMIT then
+            local nd = d + 1
+            if x > 0 and dist[y][x - 1] > nd then
+                dist[y][x - 1] = nd
+                tail = tail + 1
+                queue[tail] = idx - 1
+            end
+            if x < width - 1 and dist[y][x + 1] > nd then
+                dist[y][x + 1] = nd
+                tail = tail + 1
+                queue[tail] = idx + 1
+            end
+            if y > 0 and dist[y - 1][x] > nd then
+                dist[y - 1][x] = nd
+                tail = tail + 1
+                queue[tail] = idx - width
+            end
+            if y < height - 1 and dist[y + 1][x] > nd then
+                dist[y + 1][x] = nd
+                tail = tail + 1
+                queue[tail] = idx + width
+            end
+        end
+    end
+
+    return dist
+end
+
+local function MonkeySlotFree(world, dist, x, y, size, min_clear)
+    if type(dist[y]) ~= "table" or type(dist[y + size - 1]) ~= "table" then
+        return false
+    end
+    for yy = y, y + size - 1 do
+        local row = dist[yy]
+        for xx = x, x + size - 1 do
+            local d = row[xx]
+            if type(d) ~= "number" or d < min_clear then
+                return false
+            end
+            if world:IsTileReserved(xx, yy) then
+                return false
+            end
+        end
+    end
+    return true
+end
+
+-- 复刻 ocean_gen.lua 里的 AddSquareTopology（它是局部函数，mod 拿不到）。
+-- 猴岛布局带 add_topology，世界生成后 MonkeyIsland_GenerateDocks 要靠这个节点生成码头。
+local function AddMonkeySquareTopology(world, encoded_topology, tile_left, tile_top, area_size, map_width, map_height, add_topology)
+    if type(encoded_topology) ~= "table" or type(encoded_topology.ids) ~= "table"
+        or type(encoded_topology.nodes) ~= "table" or type(encoded_topology.story_depths) ~= "table"
+        or type(add_topology) ~= "table" then
+        return
+    end
+
+    local tile_scale = rawget(GLOBAL, "TILE_SCALE")
+    local node_type = rawget(GLOBAL, "NODE_TYPE")
+    if type(tile_scale) ~= "number" or type(node_type) ~= "table" then
+        return
+    end
+
+    local left = tile_left * tile_scale - (map_width * 0.5 * tile_scale)
+    local top = tile_top * tile_scale - (map_height * 0.5 * tile_scale)
+    local size = area_size * tile_scale
+
+    local index = #encoded_topology.ids + 1
+    encoded_topology.ids[index] = add_topology.room_id
+    encoded_topology.story_depths[index] = 0
+
+    local node = {}
+    node.area = size * size
+    node.c = 1
+    node.cent = { left + size / 2, top + size / 2 }
+    node.neighbours = {}
+    node.poly =
+    {
+        { left, top },
+        { left + size, top },
+        { left + size, top + size },
+        { left, top + size },
+    }
+    node.tags = add_topology.tags
+    node.type = add_topology.node_type or node_type.Default
+    node.x = node.cent[1]
+    node.y = node.cent[2]
+    node.validedges = {}
+    encoded_topology.nodes[index] = node
+
+    for x = tile_left, tile_left + area_size do
+        for y = tile_top, tile_top + area_size do
+            world:SetTileNodeId(x, y, index)
+        end
+    end
+end
+
+local function MakeOceanAddEntity(entitiesOut, width, height)
+    local add_entity =
+    {
+        fn = function(prefab, points_x, points_y, pos_idx, ents, w, h, prefab_list, prefab_data, rand_offset)
+            local add_one = rawget(GLOBAL, "PopulateWorld_AddEntity")
+            if type(add_one) == "function" then
+                add_one(prefab, points_x, points_y, nil, ents, w, h, prefab_list, prefab_data, rand_offset)
+            end
+        end,
+        args =
+        {
+            entitiesOut = entitiesOut,
+            width = width,
+            height = height,
+            rand_offset = true,
+            -- PopulateWorld_AddEntity 会往这个表里累加计数，不能给 nil
+            debug_prefab_list = {},
+        },
+    }
+    return add_entity
+end
+
+local function PlaceMonkeyIslandNearShore(entitiesOut, width, height, encoded_topology, min_dist_from_land)
+    if rawget(GLOBAL, "_minimap_monkey_todo") ~= true then
+        return
+    end
+    if type(entitiesOut) ~= "table" or type(width) ~= "number" or type(height) ~= "number" then
+        return
+    end
+
+    local world = rawget(GLOBAL, "WorldSim")
+    local obj_layout = require("map/object_layout")
+    if world == nil or type(obj_layout) ~= "table"
+        or type(obj_layout.LayoutForDefinition) ~= "function" then
+        return
+    end
+
+    local size_ok, world_size = pcall(function() return world:GetWorldSize() end)
+    local name = (size_ok and type(world_size) == "number" and world_size >= 425)
+        and MONKEY_LAYOUT_LARGE or MONKEY_LAYOUT_SMALL
+
+    local layout = obj_layout.LayoutForDefinition(name)
+    if type(layout) ~= "table" then
+        return
+    end
+    local prefabs = obj_layout.ConvertLayoutToEntitylist(layout)
+    local size = GetMonkeyLayoutSize(layout, prefabs)
+    local add_entity = MakeOceanAddEntity(entitiesOut, width, height)
+
+    local edge = (rawget(GLOBAL, "OCEAN_WATERFALL_MAX_DIST") or 8) + 2
+
+    if size + edge * 2 < width and size + edge * 2 < height then
+        local dist = BuildLandDistanceField(world, width, height)
+
+        -- 按离陆地距离分桶
+        local buckets = {}
+        for y = 0, height - 1 do
+            local row = dist[y]
+            for x = 0, width - 1 do
+                local d = row[x]
+                if type(d) == "number" and d >= 1 and d <= MONKEY_LAYER_LIMIT then
+                    local b = buckets[d]
+                    if b == nil then
+                        b = {}
+                        buckets[d] = b
+                    end
+                    b[#b + 1] = y * width + x
+                end
+            end
+        end
+
+        for d = 1, MONKEY_LAYER_LIMIT do
+            local anchors = buckets[d]
+            if anchors ~= nil then
+                for i = #anchors, 2, -1 do
+                    local j = math.random(i)
+                    anchors[i], anchors[j] = anchors[j], anchors[i]
+                end
+
+                local tries = math.min(#anchors, MONKEY_ANCHORS_PER_LAYER)
+                for i = 1, tries do
+                    local idx = anchors[i]
+                    local ax = idx % width
+                    local ay = (idx - ax) / width
+
+                    -- 锚点当作布局的四个角之一，取最先可用的一种
+                    local corners =
+                    {
+                        { ax, ay },
+                        { ax - size + 1, ay },
+                        { ax, ay - size + 1 },
+                        { ax - size + 1, ay - size + 1 },
+                    }
+
+                    for _, corner in ipairs(corners) do
+                        local x, y = corner[1], corner[2]
+                        if x >= edge and y >= edge
+                            and x + size - 1 <= width - edge - 1
+                            and y + size - 1 <= height - edge - 1
+                            and MonkeySlotFree(world, dist, x, y, size, 1) then
+                            obj_layout.ReserveAndPlaceLayout("POSITIONED", layout, prefabs, add_entity, { x, y }, world)
+                            for yy = y, y + size - 1 do
+                                for xx = x, x + size - 1 do
+                                    world:ReserveTile(xx, yy)
+                                end
+                            end
+                            if type(layout.add_topology) == "table" then
+                                AddMonkeySquareTopology(world, encoded_topology, x, y, size, width, height, layout.add_topology)
+                            end
+                            print(string.format("[MiniMap] 猴岛（%s）贴岸放置：离陆地约 %d 格，(%d, %d)", name, d, x, y))
+                            return
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    -- 兜底：交给原版逻辑去深海随机找位置
+    local world_tiles = rawget(GLOBAL, "WORLD_TILES") or WORLD_TILES
+    if type(ORIG_OCEAN_PLACE_SETPIECES) == "function" and world_tiles ~= nil then
+        print("[MiniMap] 没找到贴岸空位，猴岛回退到原版深海放置")
+        local set_pieces = {}
+        set_pieces[name] = 1
+        ORIG_OCEAN_PLACE_SETPIECES(set_pieces, add_entity, obj_layout, world_tiles.OCEAN_ROUGH,
+            min_dist_from_land, encoded_topology, width, height)
     end
 end
 
@@ -428,6 +733,33 @@ local function TrimOceanRooms()
             if type(rl) == "table" and type(cl) == "table" and rl["HermitcrabIsland"] ~= nil then
                 cl["HermitcrabIsland"] = rl["HermitcrabIsland"]
                 rl["HermitcrabIsland"] = nil
+            end
+        end
+    end
+
+    -- 包一层 PopulateOcean：原版把海洋布景放完之后，自己把猴岛放到离陆地最近的空位。
+    -- 只有挂上了钩子才把猴岛从房间表里摘掉，否则保留原版行为（宁可放得远，也不要丢岛）。
+    -- 注意：世界生成环境启用了 strict.lua，往 _G 上新增/读取未声明字段都会直接 error，
+    -- 所以这里一律用 rawget / rawset。
+    ORIG_OCEAN_PLACE_SETPIECES = rawget(GLOBAL, "Ocean_PlaceSetPieces")
+    if type(rawget(GLOBAL, "PopulateOcean")) == "function" and rawget(GLOBAL, "_minimap_ocean_hooked") ~= true then
+        rawset(GLOBAL, "_minimap_ocean_hooked", true)
+        local orig_populate_ocean = rawget(GLOBAL, "PopulateOcean")
+        rawset(GLOBAL, "PopulateOcean", function(spawnFn, entitiesOut, width, height, ocean_contents, world_gen_choices, min_dist_from_land, encoded_topology)
+            orig_populate_ocean(spawnFn, entitiesOut, width, height, ocean_contents, world_gen_choices, min_dist_from_land, encoded_topology)
+            PlaceMonkeyIslandNearShore(entitiesOut, width, height, encoded_topology, min_dist_from_land)
+        end)
+    end
+
+    if rawget(GLOBAL, "_minimap_ocean_hooked") == true then
+        rawset(GLOBAL, "_minimap_monkey_todo", true)
+        for _, roomname in ipairs(OCEAN_ROOMS) do
+            local room = Rooms.GetRoomByName(roomname)
+            local layouts = (type(room) == "table" and type(room.contents) == "table")
+                and room.contents.countstaticlayouts or nil
+            if type(layouts) == "table" then
+                layouts[MONKEY_LAYOUT_LARGE] = nil
+                layouts[MONKEY_LAYOUT_SMALL] = nil
             end
         end
     end
