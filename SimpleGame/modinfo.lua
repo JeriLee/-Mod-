@@ -4,9 +4,9 @@ local function Adaptive(en, zh, zht)
 end
 
 name = Adaptive(
-	"Simple Game Tweaks",
-	"简易调整",
-	"簡易調整"
+	"Bigger Ice Flingomatic range",
+	"灭火器增大范围",
+	"灭火器增大范围"
 )
 
 description = Adaptive(
@@ -58,6 +58,9 @@ reign_of_giants_compatible = false
 all_clients_require_mod = false
 
 api_version = 10
+
+icon_atlas = "modicon.xml"
+icon = "modicon.tex"
 
 server_filter_tags = { "flingomatic", "灭火器" }
 
