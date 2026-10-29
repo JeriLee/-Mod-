@@ -1,23 +1,87 @@
-name = "MiniMap - 更小的世界"
-description = [[让世界生成得更小、更紧凑。
+-- 多语言：locale 是游戏当前语言（zh = 简体，zht = 繁体），其它语言一律显示英文
+local function Adaptive(en, zh, zht)
+	local specify = { zh = zh, zht = zht }
+	return specify[locale] or en
+end
 
-实测数据（同内容量对比）：
-  原版小图 415 x 415 → 房间去重后 294 x 294
-世界尺寸由「群落(task) 数量」和「每个群落保留的房间种类数」决定，
-引擎会把地图烘焙到刚好装下所有节点的大小，所以只能靠减少内容来缩小。
+local NAME_MOD = Adaptive(
+	"MiniMap - Smaller World",
+	"MiniMap - 更小的世界",
+	"MiniMap - 更小的世界"
+)
 
-本模组的三层收缩：
-1. 每个群落只保留有内容的房间（猪王、龙蝇竞技场、月岛矿井…），
-   重复的通用地形（Forest/Plain/Rocky/Marsh）只留 0~2 个
-2. 砍掉重复/太小的群落（蜜蜂地块、魔法草原、鼹鼠、猎人…），
-   可选群落从 5 个减到 3 个
-3. 关闭 cove 死角、不让群落变成孤立小岛、收窄浅海
-   海洋布景去重（水中木、盐池各 1 个；只留帝王蟹/珍珠岛/猴岛/大漩涡）
+local DESC_MOD = Adaptive(
+[[
+Shrinks a newly generated world to fit within a target edge length (300 x 300 by default), without cutting any biome or content type.
 
-只影响「新世界生成」。生成完世界后可以安全地关闭或移除本模组。]]
+Ring-shaped terrain, roughly 30% the size of a small world map.
+When generating the map, be sure to choose a small map. Otherwise, it will be reduced to 30% of the current size.
+
+How it shrinks:
+1. Target size: duplicate rooms are scaled down proportionally (at least one of every room type is kept). Room types, set pieces and ocean set pieces are all preserved.
+2. Adaptive retry: if generation fails, the ratio is relaxed (bigger map) and retried; if it succeeds but the map is still too large, it is tightened once and retried. After 3 adjustments the result is accepted.
+3. Ring-shaped mainland: minimal branching + looped end to end, so the mainland forms a ring and the middle becomes an inland sea.
+4. Cove dead-end nodes disabled, background fill nodes halved, no isolated islands, shallow coastal water narrowed.
+5. The engine's minimum world edge is relaxed (the size preset is only a lower bound).
+6. Hermit Island, Monkey Island and Moon Island are all placed inside the ring; Moon Island size can be scaled separately (60% by default).
+
+The only option that actually removes content is "Events / Easter eggs" (stage plays, Balatro machine, etc.) - set it to "Keep" to leave them in.
+
+Only affects new world generation. The mod can be safely disabled or removed once the world has been generated.
+]],
+[[
+把地图压到目标边长以内（默认 300 x 300），群落和内容种类一个都不裁。
+
+环形地形，约为小地图30%大小，非常牛逼
+如果想要最小的地图，地图生成的时候，一定要选择地图小。否则会在当前大小的基础上缩减为30%
+
+收缩手段：
+1. 目标边长：按比例减少「重复房间」的份数（每种房间至少留 1 份），
+   房间种类、布景、海洋布景全部保留
+2. 自适应重试：生成失败会自动放宽比例（地图变大）再试；
+   生成成功但仍超过目标会收紧一次再试；最多调整 3 次，之后接受结果
+3. 环形主大陆：分支拉到最小 + 首尾相连，主大陆绕成一圈，中间成为内海
+4. 关闭 cove 死角节点、背景填充节点减半、不让群落变成孤立小岛、收窄浅海
+5. 放宽世界边长下限（引擎的边长档位只是下限）
+6. 奶奶岛、猴岛、月岛都往环内放；月岛可单独调小尺寸（默认 60%）
+
+唯一还会去掉一点内容的是「活动 / 彩蛋内容」开关（舞台剧、小丑牌等），
+不需要的话设成「保留」即可。
+
+只影响「新世界生成」。生成完世界后可以安全地关闭或移除本模组。
+]],
+[[
+把地圖壓到目標邊長以內（預設 300 x 300），群落和內容種類一個都不裁。
+
+環形地形，約為小地圖30%大小，非常牛逼
+地图生成的时候，一定要选择地图小。否则会在当前大小的基础上缩减为30%
+
+收縮手段：
+1. 目標邊長：按比例減少「重複房間」的份數（每種房間至少留 1 份），
+   房間種類、佈景、海洋佈景全部保留
+2. 自適應重試：生成失敗會自動放寬比例（地圖變大）再試；
+   生成成功但仍超過目標會收緊一次再試；最多調整 3 次，之後接受結果
+3. 環形主大陸：分支拉到最小 + 首尾相連，主大陸繞成一圈，中間成為內海
+4. 關閉 cove 死角節點、背景填充節點減半、不讓群落變成孤立小島、收窄淺海
+5. 放寬世界邊長下限（引擎的邊長檔位只是下限）
+6. 奶奶島、猴島、月島都往環內放；月島可單獨調小尺寸（預設 60%）
+
+唯一還會去掉一點內容的是「活動 / 彩蛋內容」開關（舞台劇、小丑牌等），
+不需要的話設成「保留」即可。
+
+只影響「新世界生成」。生成完世界後可以安全地關閉或移除本模組。
+]]
+)
+
+name = NAME_MOD
+description = DESC_MOD
+
 author = "MiniMap"
-version = "1.2.0"
+version = "1.6.4"
 api_version = 10
+
+icon_atlas = "modicon.xml"
+icon = "modicon.tex"
 
 dst_compatible = true
 dont_starve_compatible = false
@@ -27,148 +91,153 @@ client_only_mod = false
 
 server_filter_tags = { "worldgen", "map" }
 
+-- 配置项只需要中英两种语言（其它语言一律英文，繁体沿用简体）
+local function Loc(en, zh)
+	return (locale == "zh" or locale == "zht") and zh or en
+end
+
 configuration_options =
 {
     {
-        name = "minimap_trim",
-        label = "群落精简",
-        hover = "关闭：保留全部 20 个群落（每次都要重新挑 5 个可选群落）。\n温和：可选群落固定为蜘蛛巢/蛙池/麋鹿巢 3 个。\n标准：再去掉「蜜蜂地块」（房间太少放不下多个杀人蜂巢和蜂后）。\n极限：连可选群落也不生成，只剩 14 个固定群落。",
-        options =
-        {
-            { description = "关闭", data = "off" },
-            { description = "温和", data = "mild" },
-            { description = "标准", data = "strong" },
-            { description = "极限（最小）", data = "extreme" },
-        },
-        default = "strong",
-    },
-
-    {
         name = "minimap_events",
-        label = "活动 / 彩蛋内容",
-        hover = "保留：跟原版一样。\n去掉舞台剧与小丑牌：不生成 charlie_stage_post、statueharp_hedgespawner、balatro_machine（舞台剧设置会把竖琴雕像一起关掉），并从必需 prefab 里移除，不会导致世界生成失败。\n全部去掉：再把泰拉瑞亚箱子也去掉，这样才可以把「外围背景节点」设为关闭，是地图最后一大块能省的地方。",
+        label = Loc("Events / Easter Eggs", "活动 / 彩蛋内容"),
+        hover = Loc(
+            "Keep: same as vanilla.\nNo stage plays & Balatro: charlie_stage_post, statueharp_hedgespawner and balatro_machine are not generated, and are removed from the required prefabs.\nRemove all: also removes the Terraria chest, which is required before Background Nodes can be turned off.",
+            "保留：跟原版一样。\n去掉舞台剧与小丑牌：不生成 charlie_stage_post、statueharp_hedgespawner、balatro_machine，并从必需 prefab 里移除。\n全部去掉：再把泰拉瑞亚箱子也去掉，这样才可以把「外围背景节点」设为关闭。"
+        ),
         options =
         {
-            { description = "保留", data = "keep" },
-            { description = "去掉舞台剧与小丑牌", data = "basic" },
-            { description = "全部去掉（含泰拉箱）", data = "all" },
+            { description = Loc("Keep", "保留"), data = "keep" },
+            { description = Loc("No stage plays & Balatro", "去掉舞台剧与小丑牌"), data = "basic" },
+            { description = Loc("Remove all (incl. Terraria chest)", "全部去掉（含泰拉箱）"), data = "all" },
         },
         default = "basic",
     },
 
     {
+        name = "minimap_ring",
+        label = Loc("Ring Mainland", "环形主大陆"),
+        hover = Loc(
+            "On: branching is minimized (branching=never) and the mainland is looped end to end (loop=always),\nso the mainland wraps into a ring with an inland sea in the middle - Hermit Island, Monkey Island and Moon Island are placed there.\nOff: restores vanilla branching and paths.",
+            "开启：地图分支拉到最小（branching=never），并让主大陆首尾相连（loop=always），\n主大陆会绕成一圈，中间剩下一片内海——奶奶岛、猴岛、月岛都往这里放。\n关闭：恢复原版的分支与路径。"
+        ),
+        options =
+        {
+            { description = Loc("On", "开启"), data = true },
+            { description = Loc("Off", "关闭"), data = false },
+        },
+        default = true,
+    },
+
+    {
         name = "minimap_islands",
-        label = "岛屿靠岸",
-        hover = "保持原版：月岛是独立区域，会被丢到地图最空的角落，中间插 8 个中继节点；奶奶岛在深海。\n月岛并入主大陆：清掉 region_id，月岛 5 个任务变成普通任务，直接接在主大陆旁边，会紧贴陆地甚至连成一片，同时省掉中继节点，地图也会变小。\n月岛 + 奶奶岛靠岸：再把奶奶岛从深海（OceanRough）搬到近岸海域（OceanCoastal）。",
+        label = Loc("Island Placement", "岛屿位置"),
+        hover = Loc(
+            "Inland sea (recommended): Hermit Island and Monkey Island are placed in the sea inside the ring first (they may hug the mainland, at least 1 tile of water away),\nand Moon Island is attached to the two mainland nodes closest to the center.\nOnly when the inland sea is too small do they fall back outside the ring: near the shore first, then vanilla random deep water.\nNear shore: no inland search; Hermit Island moves to coastal water, Monkey Island goes to the layer of water closest to land.\nVanilla: all three islands are placed randomly by vanilla logic and often drift far out into deep ocean.",
+            "环内内海（推荐）：优先把奶奶岛、猴岛放进环形主大陆中间的内海（允许紧贴主大陆，最近只隔 1 格水），\n月岛也挂到最靠中心的两个主大陆节点上。\n内海太小放不下时才退到环外：先贴岸，再交给原版随机丢到深水。\n靠岸：不找环内，奶奶岛搬到近岸海域、猴岛放在离陆地最近的一层水域。\n保持原版：三座岛都由原版逻辑随机找位置，经常飘在很远的深海。"
+        ),
         options =
         {
-            { description = "保持原版", data = "keep" },
-            { description = "只月岛并陆", data = "moon" },
-            { description = "月岛并陆 + 奶奶岛靠岸", data = "both" },
+            { description = Loc("Inland sea", "环内内海"), data = "center" },
+            { description = Loc("Near shore", "靠岸"), data = "near" },
+            { description = Loc("Vanilla", "保持原版"), data = "keep" },
         },
-        default = "both",
+        default = "center",
     },
 
     {
-        name = "minimap_maxrooms",
-        label = "每个群落最多保留几种房间",
-        hover = "2 = 最紧凑。带静态布景的房间（猪王、雕像、泰拉箱、月岛矿井）优先保留，所以关键内容不会丢。\n如果生成时频繁出现 PANIC 重试，把它调回 3。",
+        name = "minimap_target_size",
+        label = Loc("Target Map Size", "目标地图边长"),
+        hover = Loc(
+            "DST's world_size is only a lower bound; the final edge length is decided by the number of room nodes (vanilla small map is about 415 x 415).\nTo get below the target the only lever is reducing duplicate rooms (room types, set pieces and content are all kept).\nIf generation fails the ratio is relaxed and retried; if it succeeds but is still too large it is tightened once and retried; after 3 adjustments the result is accepted.",
+            "DST 的 world_size 只是「下限」，最终边长由房间节点数量决定（原版小图约 415 x 415）。\n要压到目标以下，只能减少「重复房间」的份数（房间种类、布景、内容都不删）。\n生成失败会自动放宽比例再试；生成成功但仍超过目标会收紧一次再试；最多调整 3 次，之后接受结果。"
+        ),
         options =
         {
-            { description = "2 种（最小）", data = 2 },
-            { description = "3 种", data = 3 },
-            { description = "4 种", data = 4 },
+            { description = Loc("No limit", "不限制"), data = 0 },
+            { description = Loc("350 x 350", "350 x 350"), data = 350 },
+            { description = Loc("300 x 300 (recommended)", "300 x 300（推荐）"), data = 300 },
+            { description = Loc("250 x 250", "250 x 250"), data = 250 },
         },
-        default = 2,
+        default = 300,
     },
 
     {
-        name = "minimap_filler",
-        label = "额外保留的通用地形",
-        hover = "在上面的内容房间之外，每个群落再额外保留几个通用地形房间（Forest/Plain/Rocky/Marsh）。\n0 = 最紧凑；1~2 会让地形过渡自然很多，但地图明显变大。",
+        name = "minimap_moon_size",
+        label = Loc("Moon Island Size", "月岛尺寸"),
+        hover = Loc(
+            "Only shrinks the room count of Moon Island (5 tasks); the mainland is untouched.\nMoon Island is still a vanilla separate region, just a bit smaller, so altars, moonstone mines, baths and the rest still generate.\nIf generation keeps hitting PANIC retries (altar set pieces do not fit), set this back to 100%.",
+            "只缩小月岛（5 个任务）的房间数量，主大陆一个房间都不动。\n月岛仍然是原版的独立区域，只是岛本身小一圈，岛上的祭坛、月石矿、浴场等内容照常生成。\n如果生成时频繁出现 PANIC 重试（祭坛布景放不下），把它调回 100%。"
+        ),
         options =
         {
-            { description = "0 个", data = 0 },
-            { description = "1 个", data = 1 },
-            { description = "2 个", data = 2 },
+            { description = Loc("100% (vanilla)", "100%（原版）"), data = 1.0 },
+            { description = Loc("80%", "80%"), data = 0.8 },
+            { description = Loc("60% (recommended)", "60%（推荐）"), data = 0.6 },
+            { description = Loc("40% (smallest)", "40%（最小）"), data = 0.4 },
         },
-        default = 0,
-    },
-
-    {
-        name = "minimap_shrink",
-        label = "保留房间的重复份数比例",
-        hover = "被保留下来的房间，其数量（重复份数）再按此比例削减。\n例如 Squeltch 原本 6 个 Marsh，压成 3 个（55%）或 2 个（25%）。",
-        options =
-        {
-            { description = "85%", data = 0.85 },
-            { description = "70%", data = 0.70 },
-            { description = "55%", data = 0.55 },
-            { description = "40%", data = 0.40 },
-            { description = "25%", data = 0.25 },
-        },
-        default = 0.25,
+        default = 0.6,
     },
 
     {
         name = "minimap_bg",
-        label = "外围背景节点",
-        hover = "泰拉瑞亚箱子等 prefab 是靠背景房间的 tags 放置的，所以「关闭」必须配合把「活动/彩蛋内容」设为「全部去掉（含泰拉箱）」，否则会缺 prefab 导致世界生成失败。\n减半 = 每个房间 0~1 个背景节点，安全。",
+        label = Loc("Outer Background Nodes", "外围背景节点"),
+        hover = Loc(
+            "Background nodes only serve the tags of background rooms; their count does not affect content.\nHalf = 0-1 background nodes per room, safe.\nTurning them off requires setting Events / Easter Eggs to \"Remove all (incl. Terraria chest)\", otherwise missing prefabs make world generation fail.",
+            "背景节点只为「背景房间」的 tags 服务，数量不影响内容。\n减半 = 每个房间 0~1 个背景节点，安全。\n关闭必须配合把「活动/彩蛋内容」设为「全部去掉（含泰拉箱）」，否则会缺 prefab 导致世界生成失败。"
+        ),
         options =
         {
-            { description = "保持原样", data = "keep" },
-            { description = "减半 (0~1)", data = "half" },
-            { description = "关闭 (需去掉泰拉箱)", data = "none" },
+            { description = Loc("Keep as is", "保持原样"), data = "keep" },
+            { description = Loc("Half (0-1)", "减半 (0~1)"), data = "half" },
+            { description = Loc("Off (needs Terraria chest removed)", "关闭 (需去掉泰拉箱)"), data = "none" },
         },
         default = "half",
     },
 
     {
         name = "minimap_world_size",
-        label = "世界边长下限",
-        hover = "引擎的边长档位是 50 / 350 / 400 / 425 / 450，它只是「下限」，最终尺寸由内容量决定。\n选 50 才能去掉 350 这个下限，让地图跟着内容一起缩小。",
+        label = Loc("Min World Size", "世界边长下限"),
+        hover = Loc(
+            "The engine's size presets are 50 / 350 / 400 / 425 / 450 and are only a lower bound; the final size follows the amount of content.\nPick 50 to drop the 350 floor so the map can shrink together with its content.",
+            "引擎的边长档位是 50 / 350 / 400 / 425 / 450，它只是「下限」，最终尺寸由内容量决定。\n选 50 才能去掉 350 这个下限，让地图跟着内容一起缩小。"
+        ),
         options =
         {
-            { description = "跟随玩家设置", data = "keep" },
-            { description = "中 (400)", data = "medium" },
-            { description = "大 (350 哨兵)", data = "compact" },
-            { description = "极小 (50，推荐)", data = "small" },
+            { description = Loc("Follow player setting", "跟随玩家设置"), data = "keep" },
+            { description = Loc("Medium (400)", "中 (400)"), data = "medium" },
+            { description = Loc("Large (350 sentinel)", "大 (350 哨兵)"), data = "compact" },
+            { description = Loc("Tiny (50, recommended)", "极小 (50，推荐)"), data = "small" },
         },
         default = "small",
     },
 
     {
         name = "minimap_shallow",
-        label = "收窄浅海",
-        hover = "把大部分「浅海」推成深海，减少大片空荡的浅海区域。\n关闭后恢复原版的海域分带。",
+        label = Loc("Narrow Shallow Water", "收窄浅海"),
+        hover = Loc(
+            "Pushes most shallow water into deep ocean, reducing large empty shallow areas.\nTurn off to restore vanilla ocean bands.",
+            "把大部分「浅海」推成深海，减少大片空荡的浅海区域。\n关闭后恢复原版的海域分带。"
+        ),
         options =
         {
-            { description = "开启", data = true },
-            { description = "关闭", data = false },
-        },
-        default = true,
-    },
-
-    {
-        name = "minimap_setpieces",
-        label = "布景与海洋去重",
-        hover = "复活石/虫洞/洞穴入口按比例缩减；海洋只保留 1 个水中木、1 个盐池。",
-        options =
-        {
-            { description = "开启", data = true },
-            { description = "关闭", data = false },
+            { description = Loc("On", "开启"), data = true },
+            { description = Loc("Off", "关闭"), data = false },
         },
         default = true,
     },
 
     {
         name = "minimap_caves",
-        label = "洞穴也一起缩小",
-        hover = "关闭后只缩小地面世界，洞穴（含远古、中庭）保持原样。",
+        label = Loc("Shrink Caves Too", "洞穴也一起缩小"),
+        hover = Loc(
+            "When off, only the surface world is shrunk; caves (including ruins and atrium) stay vanilla.",
+            "关闭后只缩小地面世界，洞穴（含远古、中庭）保持原样。"
+        ),
         options =
         {
-            { description = "是", data = true },
-            { description = "否", data = false },
+            { description = Loc("Yes", "是"), data = true },
+            { description = Loc("No", "否"), data = false },
         },
         default = true,
     },
