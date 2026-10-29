@@ -65,6 +65,14 @@ if NARROW_SHALLOW == nil then NARROW_SHALLOW = true end
 local SHRINK_CAVES = GetModConfigData("minimap_caves")
 if SHRINK_CAVES == nil then SHRINK_CAVES = true end
 
+-- 地面沉洞（通往洞穴的洞）数量上限
+--   原版是 tasksets/forest.lua 里的 set_pieces.CaveEntrance.count = 10，
+--   Level:ChooseSetPieces() 会给每个候选任务塞一个，最多 10 个洞。
+local SINKHOLE_MAX = GetModConfigData("minimap_sinkholes")
+if type(SINKHOLE_MAX) ~= "number" or SINKHOLE_MAX <= 0 then
+    SINKHOLE_MAX = 4
+end
+
 ------------------------------------------------------------------------------------------
 -- 目标地图尺寸
 --   DST 的 world_size 只是「下限」，最终边长由房间节点数量决定（原版小图约 415 x 415），
@@ -1141,6 +1149,21 @@ AddLevelPreInitAny(function(level)
         local oceancfg = require("map/ocean_gen_config")
         if type(oceancfg) == "table" then
             oceancfg.final_level_shallow = 0.70
+        end
+    end
+
+    -- 2.7) 地面沉洞数量
+    --   洞是 set piece：level.set_pieces["CaveEntrance"]，原版 count = 10
+    --   （tasksets/forest.lua:54），Level:ChooseSetPieces() 按 count 逐个塞进候选任务
+    --   （scripts/map/level.lua:187-215，每个任务最多一个）。
+    --   这里在分配之前把 count 压下来；必须在 ChooseSetPieces 之前改，
+    --   而 AddLevelPreInitAny 正好在 Level:ChooseTasks 末尾（level.lua:117-121），时机合适。
+    if not is_cave and type(level.set_pieces) == "table" then
+        local entrance = level.set_pieces["CaveEntrance"]
+        if type(entrance) == "table" and type(entrance.count) == "number"
+            and entrance.count > SINKHOLE_MAX then
+            print(string.format("[MiniMap] 地面沉洞数量：%d -> %d", entrance.count, SINKHOLE_MAX))
+            entrance.count = SINKHOLE_MAX
         end
     end
 

@@ -24,8 +24,9 @@ How it shrinks:
 4. Cove dead-end nodes disabled, background fill nodes halved, no isolated islands, shallow coastal water narrowed.
 5. The engine's minimum world edge is relaxed (the size preset is only a lower bound).
 6. Hermit Island, Monkey Island and Moon Island are all placed inside the ring; Moon Island size can be scaled separately (60% by default).
+7. The number of surface sinkholes can be limited (vanilla spawns up to 10, the default here is 4).
 
-The only option that actually removes content is "Events / Easter eggs" (stage plays, Balatro machine, etc.) - set it to "Keep" to leave them in.
+Two options do remove some content: "Events / Easter eggs" and "Surface Sinkholes". Set them to "Keep" and "Vanilla" to stay completely vanilla.
 
 Only affects new world generation. The mod can be safely disabled or removed once the world has been generated.
 ]],
@@ -44,9 +45,10 @@ Only affects new world generation. The mod can be safely disabled or removed onc
 4. 关闭 cove 死角节点、背景填充节点减半、不让群落变成孤立小岛、收窄浅海
 5. 放宽世界边长下限（引擎的边长档位只是下限）
 6. 奶奶岛、猴岛、月岛都往环内放；月岛可单独调小尺寸（默认 60%）
+7. 地面沉洞数量可调（原版最多 10 个，默认 4 个）
 
-唯一还会去掉一点内容的是「活动 / 彩蛋内容」开关（舞台剧、小丑牌等），
-不需要的话设成「保留」即可。
+会去掉一点内容的是「活动 / 彩蛋内容」和「地面沉洞数量」两个开关，
+前者设成「保留」、后者设成「原版」就完全跟原版一致。
 
 只影响「新世界生成」。生成完世界后可以安全地关闭或移除本模组。
 ]],
@@ -65,9 +67,10 @@ Only affects new world generation. The mod can be safely disabled or removed onc
 4. 關閉 cove 死角節點、背景填充節點減半、不讓群落變成孤立小島、收窄淺海
 5. 放寬世界邊長下限（引擎的邊長檔位只是下限）
 6. 奶奶島、猴島、月島都往環內放；月島可單獨調小尺寸（預設 60%）
+7. 地面沉洞數量可調（原版最多 10 個，預設 4 個）
 
-唯一還會去掉一點內容的是「活動 / 彩蛋內容」開關（舞台劇、小丑牌等），
-不需要的話設成「保留」即可。
+會去掉一點內容的是「活動 / 彩蛋內容」和「地面沉洞數量」兩個開關，
+前者設成「保留」、後者設成「原版」就完全跟原版一致。
 
 只影響「新世界生成」。生成完世界後可以安全地關閉或移除本模組。
 ]]
@@ -240,5 +243,22 @@ configuration_options =
             { description = Loc("No", "否"), data = false },
         },
         default = true,
+    },
+
+    {
+        name = "minimap_sinkholes",
+        label = Loc("Surface Sinkholes", "地面沉洞数量"),
+        hover = Loc(
+            "How many cave entrances (sinkholes) may spawn on the surface.\nVanilla places up to 10 (set_pieces.CaveEntrance.count = 10); each candidate task gets at most one.\nOnly affects new world generation. Fewer holes also means fewer places to enter the caves, so 2 may be inconvenient.",
+            "地面通往洞穴的沉洞最多生成几个。\n原版最多 10 个（tasksets/forest.lua 里 set_pieces.CaveEntrance.count = 10），每个候选任务最多放一个。\n只影响新世界生成。数量太少会不方便下洞，2 个可能偏极限。"
+        ),
+        options =
+        {
+            { description = Loc("Vanilla (10)", "原版（10 个）"), data = 10 },
+            { description = Loc("6", "6 个"), data = 6 },
+            { description = Loc("4 (recommended)", "4 个（推荐）"), data = 4 },
+            { description = Loc("2", "2 个"), data = 2 },
+        },
+        default = 4,
     },
 }
