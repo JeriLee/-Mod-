@@ -39,6 +39,10 @@ local isFreezerEnable = IsEnabled("Freezer")
 local isAutoOpen = IsEnabled("SlotAutoOpen")
 local isPlayerInventoryEnable = IsEnabled("UsePlayerInventory")
 
+-- 拾取自动加入格子：开启时给格子加 priorityfn，捡到匹配材料会自动飞进装备格子
+local isAutoFillSlot = IsEnabled("AutoFillSlot")
+if isAutoFillSlot == nil then isAutoFillSlot = true end
+
 -- ===============================
 -- 是否要给装备增加一个修理槽
 -- ===============================
@@ -532,10 +536,71 @@ for perfab, item in pairs(item_config) do
         usespecificslotsforitems = true,
         type = "hand_inv",
         excludefromcrafting = true,
-        itemtestfn = item.itemtestfn
+        itemtestfn = item.itemtestfn,
+        -- priorityfn：声明「这个格子优先接收自己的修理材料」，由配置项「拾取自动加入格子」控制。
+        --   原版只有 priorityfn 非空时 ShouldPrioritizeContainer(item) 才可能为真
+        --   （scripts/components/container.lua:308-320）。
+        --   关掉开关就设为 nil：GetNextAvailableSlot 会把它过滤掉
+        --   （scripts/components/inventory.lua:825-830），捡到材料不再自动飞进格子。
+        --   注意 GetSpecializedContainers 里的注册不受这个开关影响，
+        --   否则又会退回「其他模组把装备容器交给 GiveItem 导致崩溃」的老问题。
+        priorityfn = isAutoFillSlot and item.itemtestfn or nil
     }
 
 end
+
+-- ===============================
+-- 让「已装备装备上的容器」也算专用容器
+-- ===============================
+-- 原版 Inventory:GetSpecializedContainers 只扫 itemslots（scripts/components/inventory.lua:1481-1494），
+-- 装备栏（equipslots）里的容器永远进不了 specialized 列表。
+-- 后果：别的模组若把「装备栏上的容器 + 该容器内部的栏位号」交给原版
+--   Inventory:GiveItem（例如 workshop-2946486855 的 GetNextAvailableSlot 兜底返回），
+--   GiveItem 的四条容器分支（inventory.lua:1104 / 1112 / 1135 / 1139）全都接不住，
+--   最后落到 else 把容器内的栏位号当成玩家背包栏位用 → 崩溃：
+--   inventory.lua:1141: attempt to index field 'stackable' (a nil value)
+-- 这里把「正被玩家打开着的装备容器」补进 specialized，让 GiveItem 走 1112 那条分支，
+-- 用 container:GetItemInSlot(slot) 正确处理。
+AddComponentPostInit("inventory", function(comp)
+    if TheNet == nil or not TheNet:GetIsServer() then
+        return
+    end
+
+    local _GetSpecializedContainers = comp.GetSpecializedContainers
+    function comp:GetSpecializedContainers()
+        local ret = _GetSpecializedContainers ~= nil and _GetSpecializedContainers(self) or nil
+
+        -- 原版开关：完全禁用专用容器时不做任何追加
+        if self.ignorespoverflow then
+            return ret
+        end
+
+        if self.equipslots ~= nil then
+            for _, item in pairs(self.equipslots) do
+                local c = item ~= nil and item.components ~= nil and item.components.container or nil
+                -- 只收「正被这个玩家打开着」的容器：
+                --   GiveItem 1114 行会主动 container:Open() 未打开的容器并 spawn
+                --   container_closed_receiveitem_classified，会跟本模组自己的
+                --   equipped / unequipped 开合逻辑打架，所以关闭状态的一律不加。
+                if c ~= nil and c:IsOpenedBy(self.inst) then
+                    ret = ret or {}
+                    local exists = false
+                    for i = 1, #ret do
+                        if ret[i] == c then
+                            exists = true
+                            break
+                        end
+                    end
+                    if not exists then
+                        table.insert(ret, c)
+                    end
+                end
+            end
+        end
+
+        return ret
+    end
+end)
 
 local needRebuildConfig = {"eyemaskhat", "shieldofterror", "molehat"}
 

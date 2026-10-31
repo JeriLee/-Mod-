@@ -106,6 +106,11 @@ local TXT_STATIC = {
 	["SlotAutoOpen"] = Adaptive("slot auto open","格子自动打开","格子自动打开"),
 	["SlotAutoOpenDesc"] = Adaptive("slot auto open after the equipment is put on","装备穿上后是否格子自动打开","装备穿上后是否格子自动打开"),
 
+	["AutoFillSlot"] = Adaptive("auto fill slot on pickup","拾取自动加入格子","拾取自動加入格子"),
+	["AutoFillSlotDesc"] = Adaptive("On: repair materials you pick up go into the equipment's own slot first (the equipment must be worn and its slot opened).\nOff: materials stay in your inventory, the slot only takes what you put in by hand.",
+	"开启：捡到该装备能用的修理材料时，优先放进装备自带的格子（需要装备已穿上、且格子已打开）。\n关闭：材料留在背包里，格子只接收你手动放进去的东西。",
+	"開啓：撿到該裝備能用的修理材料時，優先放進裝備自帶的格子（需要裝備已穿上、且格子已打開）。\n關閉：材料留在揹包裡，格子只接收你手動放進去的東西。"),
+
 	["UsePlayerInventory"] = Adaptive("Search from player inventory","从玩家背包寻找材料","從玩家揹包尋找材料"),
 	["UsePlayerInventoryDesc"] = Adaptive("Automatically find suitable materials from the player's backpack instead of the equipment's own grid",
 	"自动从玩家背包中寻找合适的材料进行修复，无需放入装备自带的格子",
@@ -253,6 +258,13 @@ configuration_options = {
 		hover = TXT_STATIC["SlotAutoOpenDesc"],
 		options = Options,
 		default = false,
+	},
+	{
+		name = "AutoFillSlot",
+		label = TXT_STATIC["AutoFillSlot"],
+		hover = TXT_STATIC["AutoFillSlotDesc"],
+		options = Options,
+		default = true,
 	},
 	{
 		name = "UsePlayerInventory",
