@@ -136,7 +136,7 @@ end
 local materials_for_eat = function(container, food, slot)
     LogDebug("PrefersToEat", "food", food.perfab, "eater", container.inst.perfab)
     LogDebug("PrefersToEat2", "food", food.GUID, "eater", container.inst.GUID)
-    for k,v in pairs(food) do 
+    for k,v in pairs(food) do
         LogDebug("PrefersToEat3", "food", "k", k, "v", v)
     end
 
@@ -497,7 +497,7 @@ if DebugEnable then
     LogDebug("beefalohat custom_order", item_config.beefalohat.custom_order)
 end
 
--- some function 
+-- some function
 
 local function getSlotPos(item)
     return item.posh == nil and Vector3(0,   32 + 4,  0) or Vector3(0, 2, 0)
@@ -550,67 +550,91 @@ for perfab, item in pairs(item_config) do
 end
 
 -- ===============================
--- 让「已装备装备上的容器」也算专用容器
+-- 让「已装备装备上的容器」也算专用容器（仅「拾取自动加入格子」开启时）
 -- ===============================
--- 原版 Inventory:GetSpecializedContainers 只扫 itemslots（scripts/components/inventory.lua:1481-1494），
--- 装备栏（equipslots）里的容器永远进不了 specialized 列表。
--- 后果：别的模组若把「装备栏上的容器 + 该容器内部的栏位号」交给原版
---   Inventory:GiveItem（例如 workshop-2946486855 的 GetNextAvailableSlot 兜底返回），
---   GiveItem 的四条容器分支（inventory.lua:1104 / 1112 / 1135 / 1139）全都接不住，
---   最后落到 else 把容器内的栏位号当成玩家背包栏位用 → 崩溃：
---   inventory.lua:1141: attempt to index field 'stackable' (a nil value)
--- 这里把「正被玩家打开着的装备容器」补进 specialized，让 GiveItem 走 1112 那条分支，
--- 用 container:GetItemInSlot(slot) 正确处理。
-AddComponentPostInit("inventory", function(comp)
-    if TheNet == nil or not TheNet:GetIsServer() then
-        return
-    end
+-- 作用：把装备栏（equipslots）里「该收材料」的容器补进 specialized 列表。
+--   1) 让捡到的修理材料能优先飞进装备自带的格子（配合 containers.params 里的 priorityfn）；
+--   2) 顺带修掉一个崩溃：原版 Inventory:GetSpecializedContainers 只扫 itemslots
+--      （scripts/components/inventory.lua:1481-1494），装备栏容器永远进不了 specialized。
+--      别的模组若把「装备栏容器 + 该容器内部的栏位号」交给 Inventory:GiveItem
+--      （例如 workshop-2946486855 的 GetNextAvailableSlot 兜底 return k, c），
+--      GiveItem 的四条容器分支（inventory.lua:1104 / 1112 / 1135 / 1139）全都接不住，
+--      最后落到 else 把容器内栏位号当成玩家背包栏位用 → 崩溃：
+--      inventory.lua:1141: attempt to index field 'stackable' (a nil value)
+--      注册进 specialized 后会走 1112 分支，用 container:GetItemInSlot(slot) 正确处理。
+--
+-- 生效开关：整个补丁由配置项「拾取自动加入格子」(AutoFillSlot) 控制。
+--   关闭时完全不注册——装备容器不参与 specialized 分派，也不再提供上面那条崩溃防护
+--   （那种组合下需要 workshop-2946486855 自己修正 GetNextAvailableSlot 的返回值）。
+--
+-- 收录条件照抄原版 Inventory 版 ValidateSpecializedContainer（inventory.lua:1469-1478）：
+--   1) 正被这个玩家打开着（container:IsOpenedBy(self.inst)）→ 无条件算数；
+--   2) 「已关闭但可打开」的宽条件（canbeopened 且非 droponopen 且非 portablecontainer），
+--      只在「格子自动打开」(SlotAutoOpen) 开启、且不在搬运途中时启用——
+--      否则捡到材料会顺手把没打开的格子顶开（GiveItem:1114 会主动 Open 并 spawn
+--      container_closed_receiveitem_classified），跟 SlotAutoOpen = 关闭 的意图冲突；
+--   3) ignoreclosedspoverflow 为 true（正在搬运物品）时只认已打开的容器。
+--   这里不再单独判断 priorityfn：能进到这段代码就说明 AutoFillSlot 已开启，
+--   containers.params 注册时的 priorityfn 必然非空。
 
-    local _GetSpecializedContainers = comp.GetSpecializedContainers
-    function comp:GetSpecializedContainers()
-        local ret = _GetSpecializedContainers ~= nil and _GetSpecializedContainers(self) or nil
+if isAutoFillSlot then
+	AddComponentPostInit("inventory", function(comp)
+		if TheNet == nil or not TheNet:GetIsServer() then
+			return
+		end
 
-        -- 原版开关：完全禁用专用容器时不做任何追加
-        if self.ignorespoverflow then
-            return ret
-        end
+		local _GetSpecializedContainers = comp.GetSpecializedContainers
+		function comp:GetSpecializedContainers()
+			local ret = _GetSpecializedContainers ~= nil and _GetSpecializedContainers(self) or nil
 
-        if self.equipslots ~= nil then
-            for _, item in pairs(self.equipslots) do
-                local c = item ~= nil and item.components ~= nil and item.components.container or nil
-                -- 只收「正被这个玩家打开着」的容器：
-                --   GiveItem 1114 行会主动 container:Open() 未打开的容器并 spawn
-                --   container_closed_receiveitem_classified，会跟本模组自己的
-                --   equipped / unequipped 开合逻辑打架，所以关闭状态的一律不加。
-                if c ~= nil and c:IsOpenedBy(self.inst) then
-                    ret = ret or {}
-                    local exists = false
-                    for i = 1, #ret do
-                        if ret[i] == c then
-                            exists = true
-                            break
-                        end
-                    end
-                    if not exists then
-                        table.insert(ret, c)
-                    end
-                end
-            end
-        end
+			-- 原版开关：完全禁用专用容器时不做任何追加
+			if self.ignorespoverflow then
+				return ret
+			end
 
-        return ret
-    end
-end)
+			-- 是否允许「关闭着的格子」也算数：跟随 SlotAutoOpen，且搬运途中禁止
+			local allow_closed = isAutoOpen and not self.ignoreclosedspoverflow
+
+			if self.equipslots ~= nil then
+				for _, item in pairs(self.equipslots) do
+					local c = item ~= nil and item.components ~= nil and item.components.container or nil
+					if c ~= nil then
+						local usable = c:IsOpenedBy(self.inst)
+							or (allow_closed
+								and c.canbeopened
+								and not c.droponopen
+								and not c.inst:HasTag("portablecontainer"))
+						if usable then
+							ret = ret or {}
+							local exists = false
+							for i = 1, #ret do
+								if ret[i] == c then
+									exists = true
+									break
+								end
+							end
+							if not exists then
+								table.insert(ret, c)
+							end
+						end
+					end
+				end
+			end
+
+			return ret
+		end
+	end)
+end
 
 local needRebuildConfig = {"eyemaskhat", "shieldofterror", "molehat"}
 
 for _,prefab in pairs(needRebuildConfig) do
-    containers.params[prefab .. "_container"].widget.slotpos = 
+    containers.params[prefab .. "_container"].widget.slotpos =
     {
         Vector3(0,   32 + 4,  0),
         Vector3(0, -(32 + 4), 0),
     }
-    containers.params[prefab .. "_container"].widget.slotbg = 
+    containers.params[prefab .. "_container"].widget.slotbg =
     {
         { image = "slingshot_ammo_slot.tex" },
         { image = "slingshot_ammo_slot.tex" },
@@ -740,12 +764,12 @@ local function fuelDoDelta(inst, prefabConfig)
         inst.components.fueled.DoDelta = function(amount, temp)
             LogDebug("DoDelt", tostring(inst.name), temp)
 
-            if temp ~= nil and type(temp) == "number" and temp > 0 then 
+            if temp ~= nil and type(temp) == "number" and temp > 0 then
                 oldFuelDoDelta(amount, temp)
                 return
             end
 
-            checkAndRepair(inst, prefabConfig, 
+            checkAndRepair(inst, prefabConfig,
                 function (a) oldFuelDoDelta(amount, temp) end,
                 is_fuel_need
             );
@@ -894,7 +918,7 @@ local function addAutorepair(inst)
     end
 
 
-    if prefabConfig.type == repair_type.fuel then 
+    if prefabConfig.type == repair_type.fuel then
         fuelDeleped(inst, prefabConfig)
         if prefabConfig.accurately then
             fuelDoDelta(inst, prefabConfig)
@@ -919,7 +943,7 @@ local function addAutorepair(inst)
             end
             solveAfterRepair(inst, prefabConfig)
         end
-        
+
         if prefabConfig.repair_type == repair_type.eat then
             -- eye mask not need override onfinish, because it`s a bad solution
             if prefabConfig.accurately then
@@ -928,7 +952,7 @@ local function addAutorepair(inst)
         end
     end
 
-    
+
     -- local oldFiniteUsed = inst.components.finiteuses ~= nil and inst.components.finiteuses.Use or nil
     -- if oldFiniteUsed ~= nil then
     --     LogDebug("loadFunction", tostring(inst.name), "oldFiniteUsed")

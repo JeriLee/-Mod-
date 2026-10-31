@@ -12,8 +12,8 @@ local DESC_MOD = Adaptive(
 [[
 	Equipped with automatic repair, suitable for five-compartment backpack mod,Suitable for six equipment slots
 
-	If you don’t like the slots automatically opening when you equip something, you can enable the 'Turn Off Auto-Open Slots' feature. 
-	If you don't like extra slots, you can turn on 'Find Materials from Player Inventory,' so there won’t be extra slots. But to support lanterns being automatically repaired when placed on the ground, the lantern slot is still kept. 
+	If you don’t like the slots automatically opening when you equip something, you can enable the 'Turn Off Auto-Open Slots' feature.
+	If you don't like extra slots, you can turn on 'Find Materials from Player Inventory,' so there won’t be extra slots. But to support lanterns being automatically repaired when placed on the ground, the lantern slot is still kept.
 	Known game features:
 		Feature 1: Once equipment has a slot, it can’t be copied by the Mimic Worm. If you want it copied, please disable the slot feature.
 		Feature 2: Equipment with slots cannot be put into wrapping paper.
@@ -27,16 +27,14 @@ local DESC_MOD = Adaptive(
 	Lighting (Lantern, miner's hat, Moggles, Shadow Thurible)
 	Other Weapon(Alarming Clock)
 	Other Armor(Bone Armor,EyeMask)
-	Version:3.1
+	Version:3.2
 ]],
 [[
 	禁止搬运！！！
 	装备自动修理,适用于五格背包mod,适配六格背包
-	如果不喜欢装备戴上的时候，自动打开格子，可以启用【关闭格子自动打开】功能
+	如果不喜欢装备戴上的时候，自动打开格子，可以启用【关闭格子自动打开】功能，同时也会关闭拾取自动添加到格子的设定
 	如果不喜欢多余的格子，可以开启【从玩家背包寻找材料】这样就不会有额外格子。但是为了支持提灯放在地上自动修理，还是保留了提灯的格子。
-	已知游戏特性：
-		特性1：当装备拥有格子以后，就不能被拟态蠕虫复制。如果需要拟态蠕虫复制，请关闭格子功能。
-		特性2：带有格子的装备不能放入打包纸。
+	已知游戏特性:1,当装备拥有格子以后，就不能被拟态蠕虫复制。如果需要拟态蠕虫复制，请关闭格子功能。2,带有格子的装备不能放入打包纸。
 
 	当前仅支持道具:
 		护符(魔光护符,懒人护符)
@@ -48,7 +46,7 @@ local DESC_MOD = Adaptive(
 		其他武器(警钟)
 		其他防具(骨头盔甲,眼面具)
 	待补充:餐桌灯,棱镜/勋章的装备
-	版本:3.1
+	版本:3.2
 ]]
 ,
 [[
@@ -70,16 +68,16 @@ local DESC_MOD = Adaptive(
 	照明類(提燈,礦工帽,鼴鼠帽,暗影香爐)
 	其他武器(警鐘)
 	其他防具(骨頭盔甲,眼面具)
-	版本:3.1
+	版本:3.2
 
 ]])
 
 name = NAME_MOD
 description = DESC_MOD
-author = "Larkin" 
-version = "3.1"
+author = "Larkin"
+version = "3.2"
 
-forumthread = "" 
+forumthread = ""
 
 api_version = 10
 
@@ -111,7 +109,7 @@ local TXT_STATIC = {
 	"开启：捡到该装备能用的修理材料时，优先放进装备自带的格子（需要装备已穿上、且格子已打开）。\n关闭：材料留在背包里，格子只接收你手动放进去的东西。",
 	"開啓：撿到該裝備能用的修理材料時，優先放進裝備自帶的格子（需要裝備已穿上、且格子已打開）。\n關閉：材料留在揹包裡，格子只接收你手動放進去的東西。"),
 
-	["UsePlayerInventory"] = Adaptive("Search from player inventory","从玩家背包寻找材料","從玩家揹包尋找材料"),
+	["UsePlayerInventory"] = Adaptive("Search from player inventory(no slot)","从玩家背包寻找材料(关闭格子)","從玩家揹包尋找材料(关闭格子)"),
 	["UsePlayerInventoryDesc"] = Adaptive("Automatically find suitable materials from the player's backpack instead of the equipment's own grid",
 	"自动从玩家背包中寻找合适的材料进行修复，无需放入装备自带的格子",
 	"自動從玩家揹包中尋找合適的材料進行修復，無需放入裝備自帶的格子"),
@@ -240,7 +238,7 @@ local SlotOptions =
 configuration_options = {
 	{
 		name = TXT_STATIC["specialFunction"],
-		label = TXT_STATIC["specialFunction"], 
+		label = TXT_STATIC["specialFunction"],
 		options = {{description = "", data = 0}},
 		default = 0,
 		tags = {"ignore"},
@@ -257,7 +255,7 @@ configuration_options = {
 		label = TXT_STATIC["SlotAutoOpen"],
 		hover = TXT_STATIC["SlotAutoOpenDesc"],
 		options = Options,
-		default = false,
+		default = true,
 	},
 	{
 		name = "AutoFillSlot",
@@ -276,7 +274,7 @@ configuration_options = {
 
 	{
 		name = TXT_STATIC["customSlot"],
-		label = TXT_STATIC["customSlot"], 
+		label = TXT_STATIC["customSlot"],
 		options = {{description = "", data = 0}},
 		default = 0,
 		tags = {"ignore"},
@@ -326,7 +324,7 @@ configuration_options = {
 	},
 	{
 		name = TXT_STATIC["equipSetting"],
-		label = TXT_STATIC["equipSetting"], 
+		label = TXT_STATIC["equipSetting"],
 		options = {{description = "", data = 0}},
 		default = 0,
 		tags = {"ignore"},
@@ -655,7 +653,7 @@ configuration_options = {
 		options = Options,
 		default = true,
 	},
-	
+
 	--walrushat
 	{
 		name = "walrushat",
@@ -677,7 +675,7 @@ configuration_options = {
 	-- debug Setting
 	{
 		name = TXT_STATIC["debugSetting"],
-		label = TXT_STATIC["debugSetting"], 
+		label = TXT_STATIC["debugSetting"],
 		options = {{description = "", data = 0}},
 		default = 0,
 		tags = {"ignore"},
