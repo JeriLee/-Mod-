@@ -54,6 +54,10 @@ shipwrecked_compatible = false
 all_clients_require_mod = false
 client_only_mod = false
 
+-- 负优先级 = 比普通模组更晚加载，这样能捕获到其它模组对
+-- inst.LaunchProjectile 的改动，改为委托而不是互相覆盖
+priority = -100
+
 server_filter_tags = { "flingomatic" }
 
 configuration_options =
@@ -94,11 +98,11 @@ configuration_options =
 
     {
         name = "speed_by_distance",
-        label = Adaptive("Distance-based Speed", "随距离加速", "隨距離加速"),
+        label = Adaptive("High Arc Trajectory", "大抛物线弹道", "大拋物線彈道"),
         hover = Adaptive(
-            "Raise the projectile speed with firing distance so the flight time (and the landing speed) stays identical to vanilla. Off = vanilla speed curve (15~18), longer shots only get the minimum speed needed to reach.",
-            "按射击距离提高弹道速度，让滞空时间与落地速度保持和原版一致。关闭则沿用原版速度曲线（15~18），远距离仅用“刚好够打到”的速度。",
-            "按射擊距離提高彈道速度，讓滯空時間與落地速度保持和原版一致。關閉則沿用原版速度曲線（15~18），遠距離僅用「剛好夠打到」的速度。"
+            "Same formula as the SimpleGame mod: speed scales with range and the default high-arc solver is kept, so shots lob high and far. Off = vanilla speed curve (15~18) with only the minimum speed needed to reach.",
+            "与 SimpleGame 相同的算法：速度按射程放大，并保留默认的高抛解算，弹道会高高抛起再落下。关闭则沿用原版速度曲线（15~18），远距离只用“刚好够打到”的速度。",
+            "與 SimpleGame 相同的算法：速度按射程放大，並保留預設的高拋解算，彈道會高高拋起再落下。關閉則沿用原版速度曲線（15~18），遠距離只用「剛好夠打到」的速度。"
         ),
         options =
         {
@@ -112,18 +116,18 @@ configuration_options =
         name = "speed_mult",
         label = Adaptive("Speed Multiplier", "弹速倍率", "彈速倍率"),
         hover = Adaptive(
-            "Multiply the projectile speed. 1x = vanilla flight time (1.2s), 2x = double horizontal speed with half the flight time. Higher = flatter, snappier arc.",
-            "弹道速度倍率。1 倍 = 原版滞空（1.2 秒），2 倍 = 水平速度翻倍、滞空减半。倍率越高弹道越平、手感越干脆。",
-            "彈道速度倍率。1 倍 = 原版滯空（1.2 秒），2 倍 = 水平速度翻倍、滯空減半。倍率越高彈道越平、手感越乾脆。"
+            "Extra multiplier on the projectile speed. 1x matches SimpleGame. Higher = even steeper and longer-hanging arc, lower = flatter and faster.",
+            "在基准速度上再乘一个倍数。1 倍 = 与 SimpleGame 一致；越高抛物线越陡、滞空越久，越低越平越快。",
+            "在基準速度上再乘一個倍數。1 倍 = 與 SimpleGame 一致；越高拋物線越陡、滯空越久，越低越平越快。"
         ),
         options =
         {
+            { description = Adaptive("0.8x", "0.8 倍", "0.8 倍"), data = 0.8 },
             { description = Adaptive("1x", "1 倍", "1 倍"), data = 1 },
+            { description = Adaptive("1.25x", "1.25 倍", "1.25 倍"), data = 1.25 },
             { description = Adaptive("1.5x", "1.5 倍", "1.5 倍"), data = 1.5 },
-            { description = Adaptive("2x", "2 倍", "2 倍"), data = 2 },
-            { description = Adaptive("3x", "3 倍", "3 倍"), data = 3 },
         },
-        default = 2,
+        default = 1,
     },
 
     {

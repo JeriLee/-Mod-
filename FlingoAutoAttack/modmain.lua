@@ -22,11 +22,8 @@ local DEFAULT_RANGE = 35             -- 未读到配置时的兜底值（与 mod
 local VANILLA_RANGE = 15             -- 原版 TUNING.FIRE_DETECTOR_RANGE，雪球速度公式的校准基准
 local SPEED_MARGIN = 1.15            -- 关掉“随距离加速”时，相对“刚好够打到目标”的速度余量
 
--- snowball 的弹道参数，用于复算原版手感
-local GRAVITY = 25                   -- snowball 的 SetGravity(-25)
-local LAUNCH_HEIGHT = 2.5            -- snowball 的 SetLaunchOffset(0, 2.5, 0)
-local HIT_HEIGHT = 0.05              -- ComplexProjectile:OnUpdate 的落地判定高度
-local VANILLA_FLIGHT_TIME = 1.2      -- 原版打满 15 格时的滞空时间（按高抛解算约 1.2 秒）
+-- snowball 的弹道参数
+local GRAVITY = 25                   -- snowball 的 SetGravity(-25)，同时也是原版值
 
 ------------------------------------------------------------------
 -- 配置（GetModConfigData 由模组环境的 env 提供，不要走 GLOBAL）
@@ -40,26 +37,22 @@ local ATTACK_INTERVAL = tonumber(GetModConfigData("attack_interval")) or 0.5
 local ATTACK_DAMAGE = tonumber(GetModConfigData("attack_damage")) or 0
 local CONSUME_FUEL = GetModConfigData("consume_fuel") == true
 local SPEED_BY_DISTANCE = GetModConfigData("speed_by_distance") ~= false
-local SPEED_MULT = math.max(0.5, tonumber(GetModConfigData("speed_mult")) or 2)
+-- 旧存档里可能留着 2/3 这类档位，钳到 1.5 避免角度接近垂直、滞空两三秒
+local SPEED_MULT = math.min(1.5, math.max(0.5, tonumber(GetModConfigData("speed_mult")) or 1))
 local MAX_TARGETS = math.max(1, tonumber(GetModConfigData("max_targets")) or 3)
 
--- 实际滞空时间 = 原版 1.2 秒 / 倍率。
--- 倍率 1：完全原版手感；倍率 2：水平速度翻倍、滞空减半、弹道压平。
-local FLIGHT_TIME = VANILLA_FLIGHT_TIME / SPEED_MULT
-
--- “随距离加速”用的固定垂直初速：
---   从发射高度 2.5 出发，在 FLIGHT_TIME 内落到 0.05，
---   反解出 vy = (0.5*g*T^2 - (h - hit)) / T
---   倍率 1 时 ≈ 12.96（正好等于原版打满 15 格时的垂直初速），落地垂直速度 ≈ 17 与原版一致；
---   倍率越高 vy 越小，弹道越平、落地越快。
-local FIXED_VY = (0.5 * GRAVITY * FLIGHT_TIME * FLIGHT_TIME
-    - (LAUNCH_HEIGHT - HIT_HEIGHT)) / FLIGHT_TIME
+-- 速度基准 = 原版曲线按新射程归一化，再乘“射程 / 原版射程”。
+-- 倍率 1 时和 SimpleGame 的公式完全一致：
+--   easing.linear(rangesq, 15*M, 3*M, maxrange^2) == M * (15 + 3 * rangesq / maxrange^2)
+--   M = ATTACK_RANGE / VANILLA_RANGE
+local SPEED_BASE_MULT = ATTACK_RANGE / VANILLA_RANGE
 
 local FUEL_PER_SHOT = 60             -- 消耗燃料时，每次开火扣掉的燃料（fueled 单位是秒）
 local DAMAGE_RADIUS = 4              -- 与原版雪球 SpreadProtection 的默认半径一致
 local SCAN_PERIOD = 0.2              -- 索敌任务周期（越小反应越快）
 local SCAN_COOLDOWN = 0.3            -- 两次 FindEntities 之间的最小间隔（兼顾 40 格范围的开销）
 local LAUNCH_GRACE = 1.5             -- 从发事件到 SG 真正发射的容错时间（spin_up + 6 帧）
+local DEDUPE_TIME = 2                -- 与原版 firedetector:RegisterDetectedItem 的 2 秒一致
 
 ------------------------------------------------------------------
 -- 工具
@@ -86,22 +79,49 @@ local function IsAttackable(ent)
     return ent:HasTag("monster") or ent:HasTag("hostile")
 end
 
--- 返回距离最近的若干个可攻击目标（用于一轮齐射）
+-- 借用 firedetector 的 detectedItems 做“2 秒内不重复打同一个目标”的轮询，
+-- 效果和原版轮流照顾多个火点一样
+local function RegisterTargeted(inst, target)
+    local fd = inst.components.firedetector
+    if fd == nil or fd.detectedItems == nil or not target:IsValid() then
+        return
+    end
+    if fd.detectedItems[target] ~= nil then
+        fd.detectedItems[target]:Cancel()
+    end
+    fd.detectedItems[target] = inst:DoTaskInTime(DEDUPE_TIME, function(_, t)
+        if fd.detectedItems ~= nil then
+            fd.detectedItems[t] = nil
+        end
+    end, target)
+end
+
+-- 返回若干个可攻击目标：优先取最近 2 秒没打过的，都被打过才回退到全部
 local function FindTargets(inst, range, count)
     local x, y, z = inst.Transform:GetWorldPosition()
     local ents = G.TheSim:FindEntities(x, y, z, range, { "_combat" }, IGNORE_TAGS, HOSTILE_TAGS)
 
-    local sorted = {}
+    local fd = inst.components.firedetector
+    local recent = fd ~= nil and fd.detectedItems or nil
+
+    local fresh, pool = {}, {}
     for _, ent in ipairs(ents) do
         if IsAttackable(ent) then
-            table.insert(sorted, { ent = ent, sq = ent:GetDistanceSqToPoint(x, y, z) })
+            local item = { ent = ent, sq = ent:GetDistanceSqToPoint(x, y, z) }
+            table.insert(pool, item)
+            if recent == nil or recent[ent] == nil then
+                table.insert(fresh, item)
+            end
         end
     end
-    table.sort(sorted, function(a, b) return a.sq < b.sq end)
+    if #fresh > 0 then
+        pool = fresh
+    end
+    table.sort(pool, function(a, b) return a.sq < b.sq end)
 
     local targets = {}
-    for i = 1, math.min(count, #sorted) do
-        targets[i] = sorted[i].ent
+    for i = 1, math.min(count, #pool) do
+        targets[i] = pool[i].ent
     end
     return targets
 end
@@ -138,21 +158,17 @@ local function LaunchSnowball(inst, targetpos, isattack)
     end
 
     if SPEED_BY_DISTANCE then
-        -- 垂直初速恒定、滞空时间恒定 FLIGHT_TIME，水平速度 = 距离 / FLIGHT_TIME 线性增大。
-        -- 结果：不管打多远，落地垂直速度都一样，弹道角度随距离变平。
-        local vx = dist / FLIGHT_TIME
-        cp:SetHorizontalSpeed(math.sqrt(vx * vx + FIXED_VY * FIXED_VY))
-        cp:SetOnLaunch(function(p)
-            local c = p.components.complexprojectile
-            if c ~= nil then
-                -- Launch 里 CalculateTrajectory 算好的角度在这里被覆盖，
-                -- 但 ForceFacePoint 已经让实体朝向目标，SetMotorVel 是实体局部坐标，
-                -- 所以 velocity.x 就是“朝目标方向”的水平速度
-                c.velocity.x = vx
-                c.velocity.y = FIXED_VY
-                c.velocity.z = 0
-            end
-        end)
+        -- 和 SimpleGame 一样：只给速度、不接管角度，保留 ComplexProjectile 默认的
+        -- usehigharc 高抛弹道。速度越大，高抛解算出的角度越陡，抛物线越大。
+        local speed = SPEED_BASE_MULT
+            * (15 + 3 * rangesq / (ATTACK_RANGE * ATTACK_RANGE))
+            * SPEED_MULT
+        -- 兜底：无论如何先保证能打到目标
+        local minspeed = cp:CalculateMinimumSpeedForDistance(dist)
+        if minspeed ~= nil and speed < minspeed then
+            speed = minspeed + 0.2
+        end
+        cp:SetHorizontalSpeed(speed)
     else
         -- 原版手感：15 + 3*d²/225（15 格内 15~18）
         local speed = 15 + 3 * rangesq / (VANILLA_RANGE * VANILLA_RANGE)
@@ -191,6 +207,10 @@ local function OnFiresuppressorPostInit(inst)
     -- 每台发射器各有一份：标记“即将射出的这一发是不是攻击弹”
     local attack_time = nil
 
+    -- 捕获链上的上一个实现（原版，或 SimpleGame 之类的速度补偿）
+    -- 我们不覆盖灭火弹的逻辑，只接管自己发的攻击弹
+    local old_launch = inst.LaunchProjectile
+
     inst.LaunchProjectile = function(self, targetpos)
         local isattack = attack_time ~= nil and (G.GetTime() - attack_time) <= LAUNCH_GRACE
         attack_time = nil
@@ -205,6 +225,9 @@ local function OnFiresuppressorPostInit(inst)
             for _, pos in ipairs(volley) do
                 LaunchSnowball(self, pos, true)
             end
+        elseif not isattack and old_launch ~= nil then
+            -- 灭火弹交还给之前装上的实现，保留其它 mod 的弹道/速度改动
+            old_launch(self, targetpos)
         else
             LaunchSnowball(self, targetpos, isattack)
         end
@@ -257,6 +280,8 @@ local function OnFiresuppressorPostInit(inst)
         for _, target in ipairs(targets) do
             local tx, _, tz = target.Transform:GetWorldPosition()
             volley[#volley + 1] = Vector3(tx, 0, tz)
+            -- 登记 2 秒，下一轮会优先挑别的怪物，形成轮流照顾的群体效果
+            RegisterTargeted(inst, target)
         end
         inst._asf_volley = volley
 
